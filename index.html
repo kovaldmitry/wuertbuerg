@@ -941,13 +941,13 @@ const TYPES={
   gold:{name:'Сокровищница',desc:'не стреляет, приносит монеты',color:'#f2c14e',dark:'#7a5a0e',range:0,cd:1,dmg:0,income:.32}
 };
 const TOWER_POOL=['arc','arc','arc','arc','mag','mag','mag','ice','ice','snp','snp','snp','poi','poi','poi','gold','gold'];
-const BAL={hp0:22,hpGrow:1.16,speed:.85,armor0:2,armorGrow:.45,lvlMul:2.1,count0:7,countK:2.6,fastEvery:3,spdRamp:.025,gain:3,costStep:6,wb0:3,wbK:1};
+const BAL={hp0:18,hpGrow:1.16,speed:.7,armor0:2,armorGrow:.45,lvlMul:2.1,count0:7,countK:2.6,fastEvery:3,spdRamp:.025,gain:3,costStep:6,wb0:3,wbK:1};
 const SPEEDS={slow:.55,normal:.75,fast:1};
 /* Difficulty = how fast you must answer to hold the castle. hp/spd are calibrated by simulation. */
-const DIFFS={1:{name:'Лёгкий',pace:'ответ за ~7 сек',sec:7,hp:1,spd:.6},2:{name:'Средний',pace:'ответ за ~4 сек',sec:4,hp:1.4,spd:.7},
-  3:{name:'Сложный',pace:'ответ за ~2 сек',sec:2,hp:2.6,spd:.8},4:{name:'Безумный',pace:'ответ каждую секунду',sec:1,hp:7,spd:.9}};
+const DIFFS={1:{name:'Лёгкий',pace:'ответ за ~7 сек',sec:7,hp:.6,spd:.5},2:{name:'Средний',pace:'ответ за ~4 сек',sec:4,hp:.8,spd:.55},
+  3:{name:'Сложный',pace:'ответ за ~2 сек',sec:2,hp:1.6,spd:.65},4:{name:'Безумный',pace:'ответ каждую секунду',sec:1,hp:4.5,spd:.75}};
 /* Tower charge: each correct answer powers the towers for about one 'pace' of real time. */
-const chargePer=()=>diff().sec*diff().spd*1.1, chargeCap=()=>chargePer()*3;
+const chargePer=()=>diff().sec*diff().spd*1.5, chargeCap=()=>chargePer()*5;
 const diff=()=>DIFFS[store.diff||2];
 const SPEEDNAMES={slow:'медленно',normal:'нормально',fast:'быстро'};
 const tDmg=(t,l)=>TYPES[t].dmg*Math.pow(BAL.lvlMul,l-1)*(1+.1*store.up.dmg)*(1+(G.buff[t]||0));
