@@ -204,6 +204,7 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
 .timer{font-size:14px}
 #lesson.typing .photo{max-height:20vh}
 .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--panel);border-radius:12px;padding:4px;gap:4px}
+.seg.three{grid-template-columns:repeat(3,1fr)}
 .seg button{min-height:40px;border-radius:9px;font-weight:600;color:var(--mute)}
 .seg button[aria-checked="true"]{background:var(--gold);color:#2a1f05}
 #zoom{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:40;display:flex;align-items:center;justify-content:center;padding:16px}
@@ -233,7 +234,7 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
     <div class="qprompt" id="qPrompt"></div>
     <div class="qbody" id="qBody"></div>
   </section>
-  <div class="status" id="status">Сундук за каждые 4 верных подряд · быстрый ответ даёт ×2</div>
+  <div class="status" id="status">Отвечай быстрее, чем враги идут · тап по башне — что она умеет</div>
 </div>
 
 <!-- ============ MENU ============ -->
@@ -243,12 +244,13 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
     <p class="sub">Люксембургские слова: учишь, защищаешь замок, описываешь картинки к Sproochentest.</p>
     <div class="kpis">
       <div class="kpi"><small>Освоено</small><b id="mMastered">0</b></div>
-      <div class="kpi"><small>Рекорд</small><b id="mBest">—</b></div>
+      <div class="kpi"><small>Трудные</small><b id="mHard">0</b></div>
       <div class="kpi"><small>Кристаллы</small><b><span class="gem"></span><span id="mGems">0</span></b></div>
     </div>
     <div class="modes">
       <button class="mode primary" id="goBattle"><span class="ic" style="background:#2a1f05"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M4 23V9l3 2V6l3 2V4l3 3 3-3v4l3-2v5l3-2v14z" fill="#f2c14e"/><rect x="11" y="16" width="4" height="7" rx="2" fill="#2a1f05"/></svg></span><span><b>Битва за замок</b><small id="mDeckLine">Словарь: мой список</small></span></button>
       <button class="mode" id="goPics"><span class="ic" style="background:var(--sky)"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="3" y="5" width="20" height="16" rx="3" fill="none" stroke="#0d2230" stroke-width="2.2"/><circle cx="9" cy="10.5" r="2" fill="#0d2230"/><path d="M5 19l5-5 3 3 4-5 4 7" fill="none" stroke="#0d2230" stroke-width="2.2" stroke-linejoin="round"/></svg></span><span><b>Описание картинок</b><small id="mPicsLine">30 картинок · 0 пройдено</small></span></button>
+      <button class="mode" id="goHard"><span class="ic" style="background:var(--red)"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 4v10" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="13" cy="20" r="2" fill="#fff"/></svg></span><span><b>Трудные слова</b><small>Слова, на которых был затык</small></span></button>
       <button class="mode" id="goShop"><span class="ic" style="background:var(--violet)"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 3l8 8-8 12-8-12z" fill="none" stroke="#24123d" stroke-width="2.2" stroke-linejoin="round"/><path d="M5 11h16" stroke="#24123d" stroke-width="2.2"/></svg></span><span><b>Мастерская</b><small>Постоянные улучшения за кристаллы</small></span></button>
     </div>
     <button class="btn" id="goDeck">Словарь для битвы</button>
@@ -267,6 +269,11 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
     <textarea id="customTxt" placeholder="Schmetterling = бабочка&#10;Eichhörnchen = белка&#10;Regenschirm = зонт&#10;Kühlschrank = холодильник"></textarea>
     <p class="err" id="deckErr" hidden></p>
     <div class="row"><button class="btn" id="setCancel">Назад</button><button class="btn primary" id="setSave">Сохранить</button></div>
+    <div class="label" style="margin-top:6px">Резервная копия прогресса</div>
+    <p class="hint">Скопируй код и сохрани в заметках. Его можно вставить в другую версию приложения, и прогресс перенесётся.</p>
+    <div class="row"><button class="btn slim" id="bkCopy">Скопировать код</button><button class="btn slim" id="bkLoad">Восстановить из кода</button></div>
+    <textarea id="bkTxt" style="min-height:70px" placeholder="Сюда появится код или вставь свой"></textarea>
+    <p class="hint" id="bkMsg"></p>
     <button class="btn danger slim" id="resetBtn">Сбросить прогресс слов</button>
   </div>
 </div>
@@ -281,10 +288,23 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
   </div>
 </div>
 
+<!-- ============ HARD WORDS ============ -->
+<div class="overlay" id="hardO" hidden>
+  <div class="sheet">
+    <div class="topbar"><h2>Трудные слова</h2></div>
+    <p class="hint">Сюда попадает слово после двух ошибок. Оно уходит отсюда, когда ты ответишь на него верно несколько раз в разные дни. Повторы приходят сами: через 1 и 10 минут, потом через день, 3 дня, неделю, 3 недели.</p>
+    <div class="missed" id="hardList" style="max-height:46vh"></div>
+    <button class="btn primary" id="hardPlay">Битва только на трудных словах</button>
+    <button class="btn" id="hardBack">Назад</button>
+  </div>
+</div>
+
 <!-- ============ PAUSE / GAME OVER ============ -->
 <div class="overlay" id="pause" hidden>
   <div class="sheet">
     <h2>Пауза</h2>
+    <div class="label">Скорость боя</div>
+    <div class="seg three" id="speedSeg"><button data-s="slow">Медленно</button><button data-s="normal">Нормально</button><button data-s="fast">Быстро</button></div>
     <button class="btn primary" id="resumeBtn">Продолжить</button>
     <button class="btn" id="quitBtn">Выйти в меню</button>
   </div>
@@ -815,6 +835,13 @@ let store={deck:'mine',custom:'',prog:{},best:0,gems:0,up:{bank:0,walls:0,dmg:0,
 try{const s=JSON.parse(localStorage.getItem(SKEY)||'null');if(s){store=Object.assign(store,s);store.up=Object.assign({bank:0,walls:0,dmg:0,luck:0},s.up||{});}}catch(e){}
 function save(){try{localStorage.setItem(SKEY,JSON.stringify(store));}catch(e){}}
 const prog=()=>store.prog;
+/* Spaced repetition: each word remembers its level (0-5), mistakes and when it is due again. */
+const INT=[60e3,10*60e3,20*3600e3,3*86400e3,7*86400e3,21*86400e3];
+function P(w){let x=store.prog[w];if(x==null)return null;if(typeof x==='number'){x={b:x,due:0,wr:0,n:0};store.prog[w]=x;}return x;}
+const boxOf=w=>{const x=P(w);return x?x.b:0;};
+const isHard=x=>!!x&&x.wr>=2&&x.b<4;
+function hardList(){return ALLW.filter(w=>isHard(P(w.w))).sort((a,b)=>P(b.w).wr-P(a.w).wr||P(a.w).b-P(b.w).b);}
+function dueCount(){const now=Date.now();return ALLW.filter(w=>{const x=P(w.w);return x&&x.due<=now&&x.b<5;}).length;}
 
 function parseCustom(txt){
   const out=[],seen=new Set();
@@ -824,9 +851,11 @@ function parseCustom(txt){
 }
 function deckFor(id){
   if(id==='custom'){const d=parseCustom(store.custom);return d.length>=4?d:MINE;}
+  if(id==='hard'){const h=hardList();if(h.length>=8)return h;
+    const seen=ALLW.filter(w=>P(w.w)&&!h.includes(w)).sort((a,b)=>P(b.w).wr-P(a.w).wr||P(a.w).b-P(b.w).b);return [...h,...seen].slice(0,Math.max(12,h.length));}
   return {mine:MINEPLUS,pics:PICW,lb:LB,all:ALLW}[id]||MINEPLUS;
 }
-const DECKNAMES={mine:'мой список + картинки',pics:'слова к картинкам',lb:'базовые слова',all:'всё вместе',custom:'свой список'};
+const DECKNAMES={hard:'трудные слова',mine:'мой список + картинки',pics:'слова к картинкам',lb:'базовые слова',all:'всё вместе',custom:'свой список'};
 
 /* ================= HELPERS ================= */
 const $=id=>document.getElementById(id);
@@ -846,7 +875,9 @@ function distractors(word,field,n,pool){
   return out;
 }
 const optPool=()=>store.deck==='custom'?deck:ALLW;
-function bump(w,ok){const p=prog();p[w]=ok?Math.min(5,(p[w]||0)+1):Math.max(0,(p[w]||0)-2);}
+function bump(w,ok){const x=P(w)||(store.prog[w]={b:0,due:0,wr:0,n:0}),now=Date.now();x.n++;x.last=now;
+  if(ok)x.b=Math.min(5,x.b+1);else{x.b=Math.max(0,x.b-2);x.wr++;}
+  x.due=now+INT[x.b]*(ok?1:.5);}
 
 /* Renders a question into a container. q = {mode:'fwd'|'rev'|'scr'|'pick'|'order', ...}; calls done(ok) once. */
 function renderQuestion(q,els,done){
@@ -897,87 +928,116 @@ const WP=[[-0.7,0.5],...PATH.map(p=>[p[0]+.5,p[1]+.5]),[1.5,8.45]];
 const SEG=[];let TOTAL=0;
 for(let i=0;i<WP.length-1;i++){const a=WP[i],b=WP[i+1],l=Math.hypot(b[0]-a[0],b[1]-a[1]);SEG.push({a,b,l,s:TOTAL});TOTAL+=l;}
 function posAt(d){for(const g of SEG){if(d<=g.s+g.l){const k=(d-g.s)/g.l;return [g.a[0]+(g.b[0]-g.a[0])*k,g.a[1]+(g.b[1]-g.a[1])*k];}}return WP[WP.length-1];}
+/* Tower roles: each beats a different enemy. Arrows shred swarms, ballista pierces armour,
+   poison melts tanks over time, frost slows a whole area, the treasury pays instead of shooting. */
 const TYPES={
-  arc:{name:'лучники',color:'#e8a33d',dark:'#7a4f0e',range:1.75,cd:.55,dmg:4},
-  mag:{name:'маги',color:'#b48cf2',dark:'#4a2b80',range:1.55,cd:1.25,dmg:3.6,splash:.8},
-  ice:{name:'ледяные',color:'#6cc9ef',dark:'#1d5b75',range:1.5,cd:.9,dmg:1.3,slow:1.6}
+  arc:{name:'Лучник',desc:'частые выстрелы по одной цели',color:'#ef8a4c',dark:'#7a3510',range:1.7,cd:.5,dmg:3},
+  mag:{name:'Маг',desc:'взрыв по площади, хорош против роя',color:'#b48cf2',dark:'#4a2b80',range:1.5,cd:1.5,dmg:3.2,splash:.85},
+  ice:{name:'Мороз',desc:'замедляет всех врагов вокруг',color:'#6cc9ef',dark:'#1d5b75',range:1.35,cd:1.1,dmg:.5,aura:true,slow:1.3},
+  snp:{name:'Баллиста',desc:'бьёт далеко и редко самого сильного, пробивает броню',color:'#d5dbe2',dark:'#3b4450',range:2.8,cd:2.3,dmg:15,strongest:true,pierce:true},
+  poi:{name:'Яд',desc:'отравляет, яд копится и игнорирует броню',color:'#8bd450',dark:'#2f5a17',range:1.6,cd:.8,dmg:1.1,poison:true},
+  gold:{name:'Сокровищница',desc:'не стреляет, приносит монеты',color:'#f2c14e',dark:'#7a5a0e',range:0,cd:1,dmg:0,income:.32}
 };
-const tDmg=(t,l)=>TYPES[t].dmg*Math.pow(2.15,l-1)*(1+.1*store.up.dmg)*(1+(G.buff[t]||0));
-const tRange=(t,l)=>TYPES[t].range+(l-1)*.09;
+const TOWER_POOL=['arc','arc','arc','arc','mag','mag','mag','ice','ice','snp','snp','snp','poi','poi','poi','gold','gold'];
+const BAL={hp0:14,hpGrow:1.24,speed:.8,armor0:1.5,armorGrow:.35,lvlMul:2.1};
+const SPEEDS={slow:.55,normal:.75,fast:1};
+const SPEEDNAMES={slow:'медленно',normal:'нормально',fast:'быстро'};
+const tDmg=(t,l)=>TYPES[t].dmg*Math.pow(BAL.lvlMul,l-1)*(1+.1*store.up.dmg)*(1+(G.buff[t]||0));
+const tRange=(t,l)=>TYPES[t].range+(l-1)*.1;
 
 /* ================= BATTLE: STATE ================= */
-let G=null, running=false, paused=false, last=0, T=0, simT=0, deck=MINE, Q=null, recent=[];
+let G=null, running=false, paused=false, last=0, T=0, deck=MINE, Q=null, recent=[];
 function newGame(){
   G={wave:0,hearts:10+2*store.up.walls,coins:40+15*store.up.bank,cost:20,combo:0,bestCombo:0,right:0,wrong:0,missed:new Map(),
      grid:Array.from({length:ROWS},()=>Array(COLS).fill(null)),enemies:[],fx:[],queue:[],spawnT:0,interval:1,
-     waveActive:false,breakT:1.5,jam:0,freeze:0,retry:[],buff:{},goldN:0,gems:0,quest:null,pendingChest:0};
+     waveActive:false,breakT:4,jam:0,freeze:0,retry:[],buff:{},goldN:0,gems:0,quest:null,pendingChest:0,chestOpen:false,tip:null};
   G.maxHearts=G.hearts;
-  G.grid[1][2]={type:'arc',lvl:1,cd:0};G.grid[1][3]={type:'arc',lvl:1,cd:0};
-  T=0;simT=0;newQuest();
+  G.grid[1][2]={type:'arc',lvl:1,cd:0};G.grid[3][3]={type:'mag',lvl:1,cd:0};
+  T=0;newQuest();
 }
 function startWave(n){
   G.wave=n;G.waveActive=true;
-  const count=Math.min(6+Math.floor(n*1.6),34),q=[];
-  for(let i=0;i<count;i++){if(n>=3&&i%4===3)q.push('fast');else if(n>=5&&i%5===4)q.push('tank');else q.push('norm');}
+  const count=Math.min(7+Math.floor(n*1.8),40),q=[];
+  for(let i=0;i<count;i++){
+    if(n>=4&&i%6===5)q.push('swarm');
+    else if(n>=3&&i%4===3)q.push('fast');
+    else if(n>=2&&i%5===4)q.push('tank');
+    else q.push('norm');
+  }
   if(n%5===0)q.push('boss');
-  G.queue=q;G.spawnT=.3;G.interval=Math.max(.42,1.1-n*.03);
-  banner('Волна '+n,n%5===0?'Идёт босс со щитом':n===1?'Каждый ответ двигает бой':'');
+  G.queue=q;G.spawnT=.3;G.interval=Math.max(.5,1.25-n*.035);
+  const sub=n%5===0?'Идёт босс со щитом':n===2?'Танки в броне: нужны баллиста или яд':n===4?'Рой мелких врагов: нужен маг':n===3?'Быстрые бегуны':'';
+  banner('Волна '+n,sub);
   updHud();
 }
 function spawnEnemy(kind){
-  const n=G.wave,base=10*Math.pow(1.2,n-1),sp=.85+Math.min(.45,n*.016),e={kind,d:0,slowT:0,hit:0};
-  if(kind==='norm'){e.hp=base;e.speed=sp;e.r=.17;e.leak=1;e.reward=1;}
-  if(kind==='fast'){e.hp=base*.55;e.speed=sp*1.7;e.r=.13;e.leak=1;e.reward=1;}
-  if(kind==='tank'){e.hp=base*2.6;e.speed=sp*.7;e.r=.23;e.leak=2;e.reward=2;}
-  if(kind==='boss'){e.hp=base*14;e.speed=.5;e.r=.31;e.leak=5;e.reward=20;e.shield=1+Math.floor(n/10);e.maxShield=e.shield;}
-  e.max=e.hp;G.enemies.push(e);if(kind==='boss')setBossUI();
+  const n=G.wave,base=BAL.hp0*Math.pow(BAL.hpGrow,n-1),sp=BAL.speed*(1+Math.min(.35,n*.012));
+  const mk=(o)=>{const e=Object.assign({kind,d:0,slowT:0,hit:0,armor:0,psn:0,psnT:0},o);e.max=e.hp;G.enemies.push(e);return e;};
+  if(kind==='norm')mk({hp:base,speed:sp,r:.17,leak:1,reward:1});
+  if(kind==='fast')mk({hp:base*.6,speed:sp*1.75,r:.13,leak:1,reward:1});
+  if(kind==='tank')mk({hp:base*2.4,speed:sp*.7,r:.23,leak:2,reward:3,armor:BAL.armor0+n*BAL.armorGrow});
+  if(kind==='swarm')for(let i=0;i<4;i++)mk({kind:'swarm',hp:base*.32,speed:sp*1.15,r:.1,leak:1,reward:0,d:-i*.28});
+  if(kind==='boss'){mk({hp:base*16,speed:sp*.55,r:.31,leak:6,reward:25,armor:BAL.armor0+n*BAL.armorGrow*.6,shield:1+Math.floor(n/10),maxShield:1+Math.floor(n/10)});setBossUI();}
 }
 function emptyCells(){const c=[];for(let r=0;r<ROWS;r++)for(let x=0;x<COLS;x++)if(!pathSet.has(x+','+r)&&!G.grid[r][x])c.push([x,r]);return c;}
 function placeTower(lvl,type){
   const cells=emptyCells();
-  type=type||rnd(['arc','arc','arc','mag','mag','ice','ice']);
-  if(cells.length){const [x,r]=rnd(cells);G.grid[r][x]={type,lvl,cd:.2,pop:.35};G.fx.push({k:'merge',x:x+.5,y:r+.5,t:0,life:.4});return true;}
+  type=type||rnd(TOWER_POOL);
+  if(cells.length){const [x,r]=rnd(cells);G.grid[r][x]={type,lvl,cd:.2,pop:.35};G.fx.push({k:'merge',x:x+.5,y:r+.5,t:0,life:.4});
+    showTip(x,r);return true;}
   let low=null;for(let r=0;r<ROWS;r++)for(let x=0;x<COLS;x++){const t=G.grid[r][x];if(t&&t.lvl<MAXL&&(!low||t.lvl<low.lvl))low=t;}
   if(low){low.lvl=Math.min(MAXL,low.lvl+Math.max(1,lvl-low.lvl));low.pop=.35;return true;}return false;
 }
-function autoBuy(){let n=0;while(n<3&&G.coins>=G.cost&&emptyCells().length){G.coins-=G.cost;G.cost+=4;placeTower(1);n++;}}
+function showTip(x,r){const t=G.grid[r][x];if(!t)return;const d=TYPES[t.type];G.tip={x:x+.5,y:r+.5,a:d.name+' · ур. '+t.lvl,b:d.desc,t:2.6};}
+function autoBuy(){let n=0;while(n<3&&G.coins>=G.cost&&emptyCells().length){G.coins-=G.cost;G.cost+=5;placeTower(1);n++;}}
 function bossShielded(){return G&&G.enemies.find(e=>e.kind==='boss'&&e.shield>0);}
-function setBossUI(){$('quiz').classList.toggle('boss',!!bossShielded());}
+function setBossUI(){const q=$('quiz');if(q)q.classList.toggle('boss',!!bossShielded());}
 
 function update(dt){
   T+=dt;G.jam-=dt;G.freeze-=dt;
+  if(G.tip){G.tip.t-=dt;if(G.tip.t<=0)G.tip=null;}
   if(!G.waveActive){G.breakT-=dt;if(G.breakT<=0)startWave(G.wave+1);}
   if(G.queue.length){G.spawnT-=dt;if(G.spawnT<=0){spawnEnemy(G.queue.shift());G.spawnT=G.interval;}}
   for(let i=G.enemies.length-1;i>=0;i--){
     const e=G.enemies[i];
-    if(G.freeze<=0) e.d+=e.speed*(e.slowT>0?.5:1)*dt;
+    if(G.freeze<=0) e.d+=e.speed*(e.slowT>0?.45:1)*dt;
     e.slowT-=dt;e.hit-=dt;
+    if(e.psnT>0){e.psnT-=dt;hurt(e,e.psn*dt,true);if(e.psnT<=0)e.psn=0;if(!G.enemies.includes(e))continue;}
     if(e.d>=TOTAL){G.enemies.splice(i,1);G.hearts-=e.leak;G.fx.push({k:'leak',t:0,life:.5});updHud();setBossUI();if(G.hearts<=0){gameOver();return;}}
   }
   for(let r=0;r<ROWS;r++)for(let x=0;x<COLS;x++){
-    const t=G.grid[r][x];if(!t)continue;
+    const t=G.grid[r][x];if(!t)continue;const def=TYPES[t.type];
+    if(def.income){t.acc=(t.acc||0)+def.income*Math.pow(1.9,t.lvl-1)*dt;
+      if(t.acc>=5){const c=Math.floor(t.acc);t.acc-=c;G.coins+=c;G.fx.push({k:'txt',x:x+.5,y:r+.2,s:'+'+c,c:'#f2c14e',t:0,life:.8});autoBuy();updHud();}continue;}
     t.cd-=dt;if(t.cd>0||G.jam>0)continue;
-    const cx=x+.5,cy=r+.5,rg=tRange(t.type,t.lvl);let best=null,bs=null;
-    for(const e of G.enemies){const p=posAt(e.d);if(Math.hypot(p[0]-cx,p[1]-cy)<=rg){if(e.shield>0){if(!bs||e.d>bs.d)bs=e;}else if(!best||e.d>best.d)best=e;}}
-    const tgt=best||bs;if(!tgt)continue;fire(t,cx,cy,tgt);t.cd=TYPES[t.type].cd;
+    const cx=x+.5,cy=r+.5,rg=tRange(t.type,t.lvl);
+    if(def.aura){let any=false;for(const e of G.enemies){const p=posAt(e.d);if(e.d>0&&Math.hypot(p[0]-cx,p[1]-cy)<=rg){any=true;if(!(e.shield>0))e.slowT=def.slow;hurt(e,tDmg(t.type,t.lvl),true);}}
+      if(any){G.fx.push({k:'ring',x:cx,y:cy,r:rg,c:def.color,t:0,life:.5});t.cd=def.cd;}continue;}
+    let best=null,bs=null;
+    for(const e of G.enemies){if(e.d<0)continue;const p=posAt(e.d);if(Math.hypot(p[0]-cx,p[1]-cy)<=rg){
+      const better=(a,b)=>!b||(def.strongest?a.hp>b.hp:a.d>b.d);
+      if(e.shield>0){if(better(e,bs))bs=e;}else if(better(e,best))best=e;}}
+    const tgt=best||bs;if(!tgt)continue;fire(t,cx,cy,tgt);t.cd=def.cd;
   }
   if(G.waveActive&&!G.queue.length&&!G.enemies.length){
-    G.waveActive=false;G.breakT=3;const bonus=8+G.wave*2;G.coins+=bonus;G.gems++;
+    G.waveActive=false;G.breakT=4;const bonus=6+G.wave*2;G.coins+=bonus;G.gems++;autoBuy();
     banner('Волна '+G.wave+' отбита','+'+bonus+' монет · +1 кристалл');updHud();
   }
 }
 function fire(t,cx,cy,tgt){
   const def=TYPES[t.type],dmg=tDmg(t.type,t.lvl),p=posAt(tgt.d);
-  G.fx.push({k:'shot',x1:cx,y1:cy,x2:p[0],y2:p[1],c:def.color,t:0,life:.12,w:1+t.lvl*.4});
+  G.fx.push({k:'shot',x1:cx,y1:cy,x2:p[0],y2:p[1],c:def.color,t:0,life:def.pierce?.22:.12,w:(def.pierce?3:1)+t.lvl*.4});
   if(def.splash){G.fx.push({k:'boom',x:p[0],y:p[1],r:def.splash,c:def.color,t:0,life:.3});
-    for(const e of [...G.enemies]){const q=posAt(e.d);if(Math.hypot(q[0]-p[0],q[1]-p[1])<=def.splash)hurt(e,dmg);}}
-  else{if(def.slow&&!(tgt.shield>0))tgt.slowT=def.slow;hurt(tgt,dmg);}
+    for(const e of [...G.enemies]){if(e.d<0)continue;const q=posAt(e.d);if(Math.hypot(q[0]-p[0],q[1]-p[1])<=def.splash)hurt(e,dmg);}}
+  else if(def.poison){if(!(tgt.shield>0)){tgt.psn=Math.min(tgt.psn+dmg,dmg*6);tgt.psnT=3;}hurt(tgt,dmg*.3,true);}
+  else hurt(tgt,dmg,!!def.pierce);
 }
-function hurt(e,dmg){
+function hurt(e,dmg,pierce){
   if(e.shield>0){e.hit=.08;return;}
-  e.hp-=dmg;e.hit=.08;
+  if(!pierce&&e.armor)dmg=Math.max(dmg*.15,dmg-e.armor);
+  e.hp-=dmg;if(dmg>.5)e.hit=.06;
   if(e.hp<=0){const i=G.enemies.indexOf(e);if(i<0)return;G.enemies.splice(i,1);G.coins+=e.reward;
-    const p=posAt(e.d);G.fx.push({k:'txt',x:p[0],y:p[1],s:'+'+e.reward,c:'#f2c14e',t:0,life:.7});
+    if(e.reward){const p=posAt(Math.max(0,e.d));G.fx.push({k:'txt',x:p[0],y:p[1],s:'+'+e.reward,c:'#f2c14e',t:0,life:.7});}
     if(e.kind==='boss'){G.gems+=2;banner('Босс повержен','+'+e.reward+' монет · +2 кристалла');}
     updHud();setBossUI();}
 }
@@ -1003,20 +1063,20 @@ function rollCards(minR){
     let r=x<epic?3:x<epic+rare?2:1; r=Math.max(r,minR||1);
     const pool=CARDS.filter(c=>c.r===r&&!used.has(c.id));if(!pool.length)continue;
     const c=Object.assign({},rnd(pool));used.add(c.id);
-    if(c.id==='buff'){c.type=rnd(Object.keys(TYPES));c.name='Мастер: '+TYPES[c.type].name;c.desc='+30% урона всем башням этого типа до конца игры';c.col=TYPES[c.type].color;}
+    if(c.id==='buff'){c.type=rnd(Object.keys(TYPES).filter(k=>k!=='gold'));c.name='Мастер: '+TYPES[c.type].name;c.desc='+30% урона всем башням этого типа до конца игры';c.col=TYPES[c.type].color;}
     out.push(c);
   }
   return out;
 }
 function openChest(title,minR,after){
-  const box=$('chest');box.innerHTML='';box.hidden=false;
+  const box=$('chest');box.innerHTML='';box.hidden=false;G.chestOpen=true;
   const h=document.createElement('h3');h.textContent=title;const p=document.createElement('p');p.textContent='Выбери одну награду';box.append(h,p);
   rollCards(minR).forEach(c=>{
     const b=document.createElement('button');b.className='card r'+c.r;
     b.innerHTML='<span class="ic"></span><span style="min-width:0"><b></b><small></small></span><span class="rar"></span>';
     b.querySelector('.ic').textContent=c.ic;b.querySelector('.ic').style.background=c.col;
     b.querySelector('b').textContent=c.name;b.querySelector('small').textContent=c.desc;b.querySelector('.rar').textContent=RAR[c.r];
-    b.onclick=()=>{applyCard(c);box.hidden=true;after();};
+    b.onclick=()=>{applyCard(c);box.hidden=true;G.chestOpen=false;last=performance.now();after();};
     box.appendChild(b);
   });
 }
@@ -1058,15 +1118,21 @@ function questTick(ok,fast,word,wasRetry){
 /* ================= BATTLE: QUIZ ================= */
 function pickWord(){
   if(G.retry.length){G.retry.forEach(x=>x.n--);const i=G.retry.findIndex(x=>x.n<=0);if(i>=0){const w=G.retry.splice(i,1)[0].w;const d=deck.find(x=>x.w===w);if(d)return d;}}
-  const p=prog();let tot=0;
-  const ws=deck.map(w=>{if(recent.includes(w.w))return 0;const b=p[w.w]||0;const v=Math.pow(6-b,2)+(G.missed.has(w.w)?12:0);tot+=v;return v;});
+  /* due and difficult words first, new words introduced gradually */
+  const now=Date.now();let tot=0;
+  const learning=deck.filter(w=>{const x=P(w.w);return x&&x.b<3;}).length;
+  const ws=deck.map(w=>{if(recent.includes(w.w))return 0;const x=P(w.w);let v;
+    if(!x)v=learning>25?.3:2;
+    else if(x.due<=now)v=6+2*x.wr+(5-x.b);
+    else v=.35+(isHard(x)?1.5:0);
+    if(G.missed.has(w.w))v+=10;tot+=v;return v;});
   let r=Math.random()*tot;for(let i=0;i<deck.length;i++){r-=ws[i];if(r<=0)return deck[i];}
   return rnd(deck);
 }
 const qEls={label:$('qLabel'),prompt:$('qPrompt'),body:$('qBody')};
 function newQuestion(){
   const word=pickWord();recent.push(word.w);if(recent.length>Math.min(8,deck.length-4))recent.shift();
-  const box=prog()[word.w]||0,wasRetry=G.missed.has(word.w);
+  const box=boxOf(word.w),wasRetry=G.missed.has(word.w);
   let mode=box<2?'fwd':'rev';
   if(box>=4&&!/\s/.test(word.w)&&Array.from(word.w).length<=12)mode='scr';
   const boss=bossShielded();
@@ -1095,7 +1161,7 @@ function answer(ok){
     G.jam=1.7;G.retry=G.retry.filter(x=>x.w!==w.w);G.retry.push({w:w.w,n:3});
   }
   questTick(ok,fast,w,Q.wasRetry);
-  simT+=1.7;autoBuy();save();updHud();
+  autoBuy();save();updHud();
   setTimeout(()=>{
     if(!running)return;
     if(G.pendingChest){const quest=G.pendingChest===2;G.pendingChest=0;
@@ -1119,12 +1185,18 @@ function drawTower(t,cx,cy,scale){
   if(t.lvl>=4){ctx.shadowColor=def.color;ctx.shadowBlur=S*.08*(t.lvl-2);}
   ctx.fillStyle=def.dark;ctx.beginPath();ctx.ellipse(0,s*.75,s*.95,s*.32,0,0,Math.PI*2);ctx.fill();
   ctx.fillStyle=def.color;ctx.strokeStyle=def.dark;ctx.lineWidth=Math.max(1.5,S*.035);ctx.beginPath();
-  if(t.type==='arc'){ctx.moveTo(0,-s);ctx.lineTo(s*.9,s*.7);ctx.lineTo(-s*.9,s*.7);ctx.closePath();}
+  let ty=s*.04;
+  if(t.type==='arc'){ctx.moveTo(0,-s);ctx.lineTo(s*.9,s*.7);ctx.lineTo(-s*.9,s*.7);ctx.closePath();ty=s*.22;}
   else if(t.type==='mag')ctx.arc(0,0,s*.82,0,Math.PI*2);
-  else{ctx.moveTo(0,-s);ctx.lineTo(s*.8,0);ctx.lineTo(0,s*.85);ctx.lineTo(-s*.8,0);ctx.closePath();}
+  else if(t.type==='ice'){ctx.moveTo(0,-s);ctx.lineTo(s*.8,0);ctx.lineTo(0,s*.85);ctx.lineTo(-s*.8,0);ctx.closePath();}
+  else if(t.type==='snp'){ctx.rect(-s*.72,-s*.62,s*1.44,s*1.3);}
+  else if(t.type==='poi'){for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/2;ctx.lineTo(Math.cos(a)*s*.85,Math.sin(a)*s*.85);}ctx.closePath();}
+  else {ctx.arc(0,0,s*.8,0,Math.PI*2);}
   ctx.fill();ctx.shadowBlur=0;ctx.stroke();
-  ctx.fillStyle='#14201b';ctx.font=`800 ${Math.round(s*.78)}px Unbounded, Arial Black, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText(t.lvl,0,t.type==='arc'?s*.22:s*.04);ctx.restore();
+  if(t.type==='snp'){ctx.strokeStyle=def.dark;ctx.lineWidth=s*.22;ctx.beginPath();ctx.moveTo(0,-s*.62);ctx.lineTo(0,-s*1.15);ctx.stroke();}
+  if(t.type==='gold'){ctx.strokeStyle=def.dark;ctx.lineWidth=Math.max(1.5,S*.03);ctx.beginPath();ctx.arc(0,0,s*.56,0,Math.PI*2);ctx.stroke();}
+  ctx.fillStyle='#14201b';ctx.font=`800 ${Math.round(s*.74)}px Unbounded, Arial Black, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(t.lvl,0,ty);ctx.restore();
 }
 function strokePath(off){ctx.beginPath();WP.forEach((p,i)=>i?ctx.lineTo(X(p[0]),Y(p[1])+off):ctx.moveTo(X(p[0]),Y(p[1])+off));ctx.stroke();}
 function draw(){
@@ -1149,9 +1221,12 @@ function draw(){
     if(drag&&drag.moved&&drag.r===r&&drag.c===x){ctx.globalAlpha=.3;drawTower(t,X(x+.5),Y(r+.5),1);ctx.globalAlpha=1;continue;}
     const pop=t.pop>0?1+Math.sin((t.pop/.35)*Math.PI)*.25:1;if(G.jam>0)ctx.globalAlpha=.45;drawTower(t,X(x+.5),Y(r+.5),pop);ctx.globalAlpha=1;}
   for(const e of G.enemies){
-    const p=posAt(e.d),ex=X(p[0]),ey=Y(p[1]),er=e.r*S,col={norm:'#8f84a8',fast:'#e3815f',tank:'#5f6b55',boss:'#d8344f'}[e.kind];
+    if(e.d<0)continue;
+    const p=posAt(e.d),ex=X(p[0]),ey=Y(p[1]),er=e.r*S,col={norm:'#8f84a8',fast:'#e3815f',tank:'#7d8a70',boss:'#d8344f',swarm:'#c9a0dc'}[e.kind];
     ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(ex,ey+er*.8,er*.9,er*.35,0,0,Math.PI*2);ctx.fill();
     ctx.fillStyle=e.hit>0?'#ffffff':(e.slowT>0||G.freeze>0?'#9fdcf5':col);ctx.beginPath();ctx.arc(ex,ey,er,0,Math.PI*2);ctx.fill();
+    if(e.armor){ctx.strokeStyle='#c9d1d9';ctx.lineWidth=Math.max(2,S*.045);ctx.beginPath();ctx.arc(ex,ey,er*.92,Math.PI*1.05,Math.PI*1.95);ctx.stroke();}
+    if(e.psnT>0){ctx.fillStyle='rgba(139,212,80,.55)';ctx.beginPath();ctx.arc(ex,ey,er*.6,0,7);ctx.fill();}
     ctx.fillStyle='#16231e';ctx.beginPath();ctx.arc(ex-er*.32,ey-er*.12,er*.14,0,7);ctx.arc(ex+er*.32,ey-er*.12,er*.14,0,7);ctx.fill();
     if(e.shield>0){ctx.strokeStyle='#59b8e6';ctx.lineWidth=S*.06;ctx.setLineDash([S*.1,S*.06]);ctx.lineDashOffset=-performance.now()/50;
       ctx.beginPath();ctx.arc(ex,ey,er+S*.1,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
@@ -1164,9 +1239,17 @@ function draw(){
     if(f.k==='txt'){ctx.fillStyle=f.c;ctx.font=`700 ${Math.round(S*.22)}px Unbounded, sans-serif`;ctx.textAlign='center';ctx.fillText(f.s,Math.min(Math.max(X(f.x),W*.3),W*.7),Y(f.y)-S*.3-(1-k)*S*.4);}
     if(f.k==='merge'){ctx.strokeStyle='#efe8d8';ctx.lineWidth=3;ctx.beginPath();ctx.arc(X(f.x),Y(f.y),S*(.3+(1-k)*.5),0,7);ctx.stroke();}
     if(f.k==='leak'){ctx.globalAlpha=k*.25;ctx.fillStyle='#d8344f';ctx.fillRect(0,0,W,H);}
+    if(f.k==='ring'){ctx.globalAlpha=k*.5;ctx.strokeStyle=f.c;ctx.lineWidth=3;ctx.beginPath();ctx.arc(X(f.x),Y(f.y),f.r*S*(1.05-k*.5),0,7);ctx.stroke();}
     if(f.k==='shield'){ctx.strokeStyle='#59b8e6';ctx.lineWidth=4;ctx.beginPath();ctx.arc(X(f.x),Y(f.y),S*(.4+(1-k)*.8),0,7);ctx.stroke();}
     ctx.globalAlpha=1;}
   if(dragT&&drag.moved)drawTower(dragT,drag.px,drag.py,1.12);
+  if(G.tip&&!(drag&&drag.moved)){const tp=G.tip,fs=Math.max(11,S*.24);ctx.font=`700 ${fs}px Golos Text, sans-serif`;
+    ctx.globalAlpha=Math.min(1,tp.t*2);const w1=ctx.measureText(tp.a).width;ctx.font=`400 ${fs*.9}px Golos Text, sans-serif`;
+    const w=Math.min(W-16,Math.max(w1,ctx.measureText(tp.b).width)+20),h=fs*2.9;
+    let bx=X(tp.x)-w/2,by=Y(tp.y)-S*.55-h;bx=Math.max(8,Math.min(W-w-8,bx));if(by<4)by=Y(tp.y)+S*.55;
+    ctx.fillStyle='rgba(12,20,17,.92)';rr(bx,by,w,h,8);ctx.fill();ctx.strokeStyle='#34493f';ctx.lineWidth=1;ctx.stroke();
+    ctx.textAlign='left';ctx.textBaseline='top';ctx.fillStyle='#efe8d8';ctx.font=`700 ${fs}px Golos Text, sans-serif`;ctx.fillText(tp.a,bx+10,by+fs*.35);
+    ctx.fillStyle='#9db0a5';ctx.font=`400 ${fs*.9}px Golos Text, sans-serif`;ctx.fillText(tp.b,bx+10,by+fs*1.5,w-20);ctx.globalAlpha=1;}
 }
 
 /* ================= BATTLE: DRAG & MERGE ================= */
@@ -1178,6 +1261,7 @@ cv.addEventListener('pointerdown',e=>{if(!running||paused)return;const[px,py]=ev
 cv.addEventListener('pointermove',e=>{if(!drag)return;const[px,py]=evPos(e);drag.px=px;drag.py=py;if(Math.hypot(px-drag.sx,py-drag.sy)>6)drag.moved=true;});
 cv.addEventListener('pointerup',()=>{
   if(!drag)return;const src=G.grid[drag.r][drag.c],c=drag.moved?cellFrom(drag.px,drag.py):null;
+  if(!drag.moved){showTip(drag.c,drag.r);drag=null;return;}
   if(src&&c&&!(c[0]===drag.c&&c[1]===drag.r)&&!pathSet.has(c[0]+','+c[1])){
     const tg=G.grid[c[1]][c[0]];
     if(!tg){G.grid[c[1]][c[0]]=src;G.grid[drag.r][drag.c]=null;}
@@ -1196,17 +1280,17 @@ function banner(t,s){$('bTitle').textContent=t;$('bSub').textContent=s||'';$('bS
 function loop(ts){
   if(!running)return;const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
   if(!paused){
-    if(simT>0){const st=Math.min(dt,simT);simT-=st;update(st);}
+    if(!G.chestOpen)update(dt*(SPEEDS[store.speed]||SPEEDS.normal));
     for(let i=G.fx.length-1;i>=0;i--){G.fx[i].t+=dt;if(G.fx[i].t>=G.fx[i].life)G.fx.splice(i,1);}
     for(let r=0;r<ROWS;r++)for(let x=0;x<COLS;x++){const t=G.grid[r][x];if(t&&t.pop>0)t.pop-=dt;}
   }
   if(running)draw();requestAnimationFrame(loop);
 }
-function hideAll(){['menu','over','pause','settings','shop','gallery','lesson'].forEach(id=>$(id).hidden=true);}
+function hideAll(){['menu','over','pause','settings','shop','gallery','lesson','hardO'].forEach(id=>$(id).hidden=true);}
 function startGame(){
   deck=deckFor(store.deck);recent=[];hideAll();$('chest').hidden=true;
   newGame();running=true;paused=false;resize();updHud();newQuestion();
-  banner('Wuertbuerg','Бой ждёт твоего ответа');last=performance.now();requestAnimationFrame(loop);
+  banner('Wuertbuerg','Бой идёт сам · пауза — кнопка II');last=performance.now();requestAnimationFrame(loop);
 }
 function gameOver(){
   running=false;$('chest').hidden=true;
@@ -1219,17 +1303,21 @@ function gameOver(){
     G.missed.forEach((t,w)=>{const d=document.createElement('div'),b=document.createElement('b'),s=document.createElement('span');b.textContent=w;s.textContent=t;d.append(b,s);m.appendChild(d);});}
   $('over').hidden=false;
 }
-function setPause(v){if(!running)return;paused=v;$('pause').hidden=!v;if(!v)last=performance.now();}
+function drawSpeed(){document.querySelectorAll('#speedSeg button').forEach(b=>b.setAttribute('aria-checked',b.dataset.s===(store.speed||'normal')));}
+document.querySelectorAll('#speedSeg button').forEach(b=>b.onclick=()=>{store.speed=b.dataset.s;save();drawSpeed();});
+function setPause(v){if(!running)return;paused=v;$('pause').hidden=!v;if(v)drawSpeed();if(!v)last=performance.now();}
 function quitBattle(){if(running&&G){store.gems+=G.gems;G.gems=0;save();}running=false;showMenu();}
 
 /* ================= MENU, DECK, SHOP ================= */
 function showMenu(){
   running=false;hideAll();
   const p=prog(),d=deckFor(store.deck);
-  $('mMastered').textContent=Object.values(p).filter(b=>b>=4).length;
-  $('mBest').textContent=store.best?'волна '+store.best:'—';
+  $('mMastered').textContent=Object.keys(p).filter(w=>boxOf(w)>=4).length;
+  const hl=hardList().length,dc=dueCount();$('mHard').textContent=hl;
+  $('goHard').querySelector('small').textContent=hl?hl+' трудных · '+dc+' пора повторить':'Пока нет: ошибайся смелее';
+
   $('mGems').textContent=store.gems;
-  $('mDeckLine').textContent='Словарь: '+DECKNAMES[store.deck]+' · '+d.length+' слов';
+  $('mDeckLine').textContent=DECKNAMES[store.deck]+' · '+d.length+' слов'+(store.best?' · рекорд: волна '+store.best:'');
   const done=Object.keys(store.pics).length;
   $('mPicsLine').textContent='30 картинок · пройдено '+done;
   $('menu').hidden=false;
@@ -1241,6 +1329,12 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!
 $('cMine').textContent=MINE.length+' слов из твоего списка + '+(MINEPLUS.length-MINE.length)+' слов и фраз с картинок';$('cPics').textContent=PICW.length+' слов и фраз из 30 картинок';
 $('cLb').textContent=LB.length+' самых частых слов';$('cAll').textContent=ALLW.length+' слов';
 let resetArm=false;
+$('bkCopy').onclick=()=>{const code=btoa(unescape(encodeURIComponent(JSON.stringify(store))));$('bkTxt').value=code;
+  const done=()=>{$('bkMsg').textContent='Код скопирован. Сохрани его в заметках.';};
+  try{navigator.clipboard.writeText(code).then(done,()=>{$('bkTxt').select();$('bkMsg').textContent='Выдели код в поле и скопируй вручную.';});}catch(e){$('bkTxt').select();}};
+$('bkLoad').onclick=()=>{try{const s=JSON.parse(decodeURIComponent(escape(atob($('bkTxt').value.trim()))));if(!s||typeof s.prog!=='object')throw 0;
+  store=Object.assign(store,s);store.up=Object.assign({bank:0,walls:0,dmg:0,luck:0},s.up||{});save();$('bkMsg').textContent='Прогресс восстановлен: '+Object.keys(store.prog).length+' слов.';}
+  catch(e){$('bkMsg').textContent='Код не подошёл. Проверь, что он скопирован целиком.';}};
 $('goDeck').onclick=()=>{
   document.querySelectorAll('input[name=deck]').forEach(r=>r.checked=r.value===store.deck);
   $('customTxt').value=store.custom||'';$('deckErr').hidden=true;resetArm=false;$('resetBtn').textContent='Сбросить прогресс слов';
@@ -1267,6 +1361,12 @@ function drawShop(){
     else{b.innerHTML='<span class="gem"></span>'+cost;b.disabled=store.gems<cost;b.onclick=()=>{if(store.gems<cost)return;store.gems-=cost;store.up[u.k]++;save();drawShop();};}
     box.appendChild(d);});
 }
+$('goHard').onclick=()=>{hideAll();const l=$('hardList');l.innerHTML='';const h=hardList();
+  if(!h.length){const d=document.createElement('div');d.textContent='Пока пусто. Слова появятся здесь после ошибок.';l.appendChild(d);}
+  h.forEach(w=>{const x=P(w.w),d=document.createElement('div'),b=document.createElement('b'),s=document.createElement('span');b.textContent=w.w;s.textContent=w.t+' · ошибок: '+x.wr;d.append(b,s);l.appendChild(d);});
+  $('hardPlay').disabled=!ALLW.some(w=>P(w.w));$('hardO').hidden=false;};
+$('hardPlay').onclick=()=>{const prev=store.deck;store.deck='hard';startGame();store.deck=prev;};
+$('hardBack').onclick=showMenu;
 $('goShop').onclick=()=>{hideAll();drawShop();$('shop').hidden=false;};
 $('shopBack').onclick=showMenu;
 
@@ -1567,7 +1667,7 @@ function renderStepE(){
   const {wrap,els}=lessonQuiz();body.appendChild(wrap);
   let q;
   if(st.k==='word'){
-    const w=st.w,box=prog()[w.w]||0,canS=Array.from(w.w).length<=14&&!/\s/.test(w.w.replace(/^(de|den) /,''));
+    const w=st.w,box=boxOf(w.w),canS=Array.from(w.w).length<=14&&!/\s/.test(w.w.replace(/^(de|den) /,''));
     if(box>=2&&canS&&!/ /.test(w.w)) q={mode:'scr',label:'Собери слово',prompt:w.t,answer:w.w};
     else q={mode:'pick',label:'Как сказать на картинке?',prompt:w.t,answer:w.w,options:shuffle([w.w,...distractors(w,'w',7,ALLW)])};
     renderQuestion(q,els,ok=>{bump(w.w,ok);save();next(ok);});
