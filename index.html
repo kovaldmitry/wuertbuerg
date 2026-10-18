@@ -47,6 +47,10 @@ button:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
 
 #stage{position:relative;flex:1;min-height:0;max-height:46vh}
 #cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.hbanner{position:absolute;left:0;right:0;top:40%;text-align:center;pointer-events:none;opacity:0;transition:opacity .35s}
+.hbanner.show{opacity:1}
+.hbanner b{display:block;font-family:var(--f-display);font-weight:800;font-size:24px;text-shadow:0 3px 0 rgba(0,0,0,.45)}
+.hbanner span{display:inline-block;margin-top:6px;font-size:13px;background:rgba(10,18,15,.8);padding:4px 10px;border-radius:999px}
 #banner{position:absolute;left:0;right:0;top:36%;text-align:center;pointer-events:none;opacity:0;transition:opacity .35s}
 #banner.show{opacity:1}
 #banner b{display:block;font-family:var(--f-display);font-weight:800;font-size:26px;text-shadow:0 3px 0 rgba(0,0,0,.45)}
@@ -252,6 +256,7 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
       <button class="mode primary" id="goBattle"><span class="ic" style="background:#2a1f05"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M4 23V9l3 2V6l3 2V4l3 3 3-3v4l3-2v5l3-2v14z" fill="#f2c14e"/><rect x="11" y="16" width="4" height="7" rx="2" fill="#2a1f05"/></svg></span><span><b>Битва за замок</b><small id="mDeckLine">Словарь: мой список</small></span></button>
       <div class="seg four" id="diffSeg" role="radiogroup" aria-label="Сложность битвы"><button data-d="1">Лёгкий</button><button data-d="2">Средний</button><button data-d="3">Сложный</button><button data-d="4">Безумный</button></div>
       <p class="hint" id="diffHint" style="margin-top:-4px"></p>
+      <button class="mode" id="goHunt"><span class="ic" style="background:#b48cf2"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><ellipse cx="13" cy="15" rx="9" ry="7" fill="#24123d"/><path d="M7 9l-2-5 5 3M19 9l2-5-5 3" fill="#24123d"/><circle cx="10" cy="14" r="2" fill="#fff"/><circle cx="16" cy="14" r="2" fill="#fff"/></svg></span><span><b>Охота на дракона</b><small id="mHuntLine">Слова падают, верные ответы бьют монстра</small></span></button>
       <button class="mode" id="goPics"><span class="ic" style="background:var(--sky)"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="3" y="5" width="20" height="16" rx="3" fill="none" stroke="#0d2230" stroke-width="2.2"/><circle cx="9" cy="10.5" r="2" fill="#0d2230"/><path d="M5 19l5-5 3 3 4-5 4 7" fill="none" stroke="#0d2230" stroke-width="2.2" stroke-linejoin="round"/></svg></span><span><b>Описание картинок</b><small id="mPicsLine">30 картинок · 0 пройдено</small></span></button>
       <button class="mode" id="goHard"><span class="ic" style="background:var(--red)"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 4v10" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="13" cy="20" r="2" fill="#fff"/></svg></span><span><b>Трудные слова</b><small>Слова, на которых был затык</small></span></button>
       <button class="mode" id="goShop"><span class="ic" style="background:var(--violet)"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 3l8 8-8 12-8-12z" fill="none" stroke="#24123d" stroke-width="2.2" stroke-linejoin="round"/><path d="M5 11h16" stroke="#24123d" stroke-width="2.2"/></svg></span><span><b>Мастерская</b><small>Постоянные улучшения за кристаллы</small></span></button>
@@ -288,6 +293,44 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
     <p class="hint">Кристаллы дают за отбитые волны, выполненные заказы и пройденные картинки. Улучшения действуют во всех будущих битвах.</p>
     <div class="ups" id="ups"></div>
     <button class="btn" id="shopBack">Назад</button>
+  </div>
+</div>
+
+<!-- ============ HUNT (mini-game) ============ -->
+<div class="overlay" id="hunt" hidden style="padding:0;background:var(--ground)">
+  <div class="screen" style="width:100%">
+    <header class="hud">
+      <div class="stat"><span class="label">Монстр</span><span id="hLvl">1</span></div>
+      <div class="stat"><span class="heart" id="hLives">♥♥♥♥</span></div>
+      <div class="spacer"></div>
+      <button class="iconbtn" id="hPauseBtn" aria-label="Пауза">II</button>
+    </header>
+    <div id="hstage" style="position:relative;flex:1;min-height:0;max-height:50vh;border-radius:14px;overflow:hidden">
+      <canvas id="hcv" style="position:absolute;inset:0;width:100%;height:100%;display:block"></canvas>
+      <div id="hBanner" class="hbanner"><b id="hbT"></b><span id="hbS"></span></div>
+    </div>
+    <section class="quiz" aria-live="polite">
+      <div class="qhead"><span class="qlabel" id="hqLabel"></span><span class="combo" id="hCombo"></span></div>
+      <div class="qprompt" id="hqPrompt"></div>
+      <div class="qbody" id="hqBody"></div>
+    </section>
+    <div class="status">Не успел — слово падает и забирает жизнь. Ошибся — монстр растёт и злится.</div>
+  </div>
+  <div class="overlay" id="huntPause" hidden>
+    <div class="sheet"><h2>Пауза</h2><button class="btn primary" id="hResume">Продолжить</button><button class="btn" id="hQuit">Выйти в меню</button></div>
+  </div>
+  <div class="overlay" id="huntOver" hidden>
+    <div class="sheet">
+      <h2 id="hoTitle">Монстр победил</h2>
+      <div class="kpis">
+        <div class="kpi"><small>Дошёл до</small><b id="hoLvl">1</b></div>
+        <div class="kpi"><small>Точность</small><b id="hoAcc">0%</b></div>
+        <div class="kpi"><small>Кристаллы</small><b><span class="gem"></span><span id="hoGems">0</span></b></div>
+      </div>
+      <p class="hint" id="hoMissHead"></p>
+      <div class="missed" id="hoMissed"></div>
+      <div class="row"><button class="btn" id="hoMenu">Меню</button><button class="btn primary" id="hoAgain">Ещё раз</button></div>
+    </div>
   </div>
 </div>
 
@@ -1307,7 +1350,7 @@ function loop(ts){
   }
   if(running)draw();requestAnimationFrame(loop);
 }
-function hideAll(){['menu','over','pause','settings','shop','gallery','lesson','hardO'].forEach(id=>$(id).hidden=true);}
+function hideAll(){['menu','over','pause','settings','shop','gallery','lesson','hardO','hunt'].forEach(id=>$(id).hidden=true);}
 function startGame(){
   deck=deckFor(store.deck);recent=[];hideAll();$('chest').hidden=true;
   newGame();running=true;paused=false;resize();updHud();newQuestion();
@@ -1340,6 +1383,7 @@ function showMenu(){
   $('goHard').querySelector('small').textContent=hl?hl+' трудных · '+dc+' пора повторить':'Пока нет: ошибайся смелее';
 
   $('mGems').textContent=store.gems;
+  {const hb=(store.huntBest||{})[store.diff||2];$('mHuntLine').textContent='Слова падают, ответы бьют монстра'+(hb?' · рекорд: монстр '+hb:'');}
   $('mDeckLine').textContent=DECKNAMES[store.deck]+' · '+d.length+' слов'+((store.bests||{})[store.diff||2]?' · рекорд: волна '+store.bests[store.diff||2]:'');
   const done=Object.keys(store.pics).length;
   $('mPicsLine').textContent='30 картинок · пройдено '+done;
@@ -1735,6 +1779,236 @@ function finishLessonE(){
   const n=document.createElement('button');n.className='btn primary';n.textContent=L.i<PICS.length-1?'Следующая':'Сначала';n.onclick=()=>startLesson((L.i+1)%PICS.length);
   row.append(a,n);body.append(s,k,h,d,tg,row);
 }
+
+/* ================= MINI-GAME: DRAACH (falling words vs. monster) =================
+   Speed costs lives (a word hits the ground), accuracy feeds the monster (a wrong answer makes it grow and heal). */
+const MONSTERS=['Draach vum Bock','Kuebe-Ris','Mullerthal-Troll','Nebel-Wollef','Stëmmfrësser','Schierger Riis','Bierg-Draach','Schatte-Kinnek'];
+const LOOT={heart:{ic:'♥',col:'#d8344f',t:'+1 жизнь'},freeze:{ic:'❄',col:'#6cc9ef',t:'Заморозка: слова стоят 4 сек.'},
+  dbl:{ic:'×2',col:'#b48cf2',t:'Двойной урон на 8 сек.'},shield:{ic:'◈',col:'#57c785',t:'Щит: один промах без потери жизни'}};
+let HG=null;
+const hcv=$('hcv'),hctx=hcv.getContext('2d');let HW=0,HH=0;
+function hresize(){const r=hcv.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2.5);HW=r.width;HH=r.height;if(!HW||!HH)return;
+  hcv.width=Math.round(HW*dpr);hcv.height=Math.round(HH*dpr);hctx.setTransform(dpr,0,0,dpr,0,0);}
+new ResizeObserver(hresize).observe(hcv);
+const hEls={label:$('hqLabel'),prompt:$('hqPrompt'),body:$('hqBody')};
+
+function huntStart(){
+  hideAll();$('hunt').hidden=false;$('huntPause').hidden=true;$('huntOver').hidden=true;
+  deck=deckFor(store.deck);
+  const d=diff();
+  HG={lvl:1,hearts:4,maxHearts:5,combo:0,best:0,right:0,wrong:0,missed:new Map(),retry:[],recent:[],gems:0,
+     items:[],rockets:[],fx:[],loot:[],spawnT:.5,freeze:0,dbl:0,shield:0,paused:false,over:false,
+     fall:d.sec*2.3,gap:d.sec*1.05,speedUp:1,active:null,t:0,hold:0};
+  newMonster();hresize();huntHud();
+  hBanner(HG.mon.name,'Отвечай, пока слово не упало');
+  HG.last=performance.now();requestAnimationFrame(huntLoop);
+}
+function newMonster(){
+  const l=HG.lvl;HG.mon={name:MONSTERS[(l-1)%MONSTERS.length]+(l>MONSTERS.length?' '+'I'.repeat(Math.floor((l-1)/MONSTERS.length)+1):''),
+    max:10+l*5,hp:10+l*5,rage:0,hit:0,hue:(l*47)%360,wob:0,dying:0};
+  HG.speedUp=1+(l-1)*.06;
+}
+function hPick(){
+  if(HG.retry.length){HG.retry.forEach(x=>x.n--);const i=HG.retry.findIndex(x=>x.n<=0);if(i>=0){const w=HG.retry.splice(i,1)[0].w;const d=deck.find(x=>x.w===w);if(d)return d;}}
+  const now=Date.now();let tot=0;const onScreen=new Set(HG.items.map(i=>i.word.w));
+  const ws=deck.map(w=>{if(HG.recent.includes(w.w)||onScreen.has(w.w))return 0;const x=P(w.w);let v;
+    if(!x)v=2;else if(x.due<=now)v=6+2*x.wr+(5-x.b);else v=.35+(isHard(x)?1.5:0);if(HG.missed.has(w.w))v+=10;tot+=v;return v;});
+  let r=Math.random()*tot;for(let i=0;i<deck.length;i++){r-=ws[i];if(r<=0)return deck[i];}return rnd(deck);
+}
+function spawnItem(){
+  const word=hPick();HG.recent.push(word.w);if(HG.recent.length>Math.min(8,deck.length-4))HG.recent.shift();
+  const mode=boxOf(word.w)<2?'fwd':'rev',f=mode==='fwd'?'t':'w';
+  const it={word,mode,prompt:mode==='fwd'?word.w:word.t,answer:word[f],options:shuffle([word[f],...distractors(word,f,7,optPool())]),
+    x:(()=>{const lanes=[.24,.5,.76].filter(l=>!HG.items.some(i=>i.state==='fall'&&Math.abs(i.x-l)<.1&&i.y<START+.25));return lanes.length?rnd(lanes):rnd([.24,.5,.76]);})(),y:START,state:'fall',flash:0};
+  HG.items.push(it);
+}
+const GROUND=.97,START=.11;
+function activeItem(){let a=null;for(const it of HG.items)if(it.state==='fall'&&(!a||it.y>a.y))a=it;return a;}
+function syncQuestion(){
+  const a=activeItem();if(a===HG.active)return;HG.active=a;
+  if(!a){hEls.body.innerHTML='';hEls.prompt.textContent='…';hEls.label.textContent='Ждём слово';return;}
+  const q={mode:'pick',label:a.mode==='fwd'?'Переведи падающее слово':'Как это по-люксембургски?',prompt:a.prompt,answer:a.answer,options:a.options};
+  a.q=q;renderQuestion(q,hEls,ok=>huntAnswer(a,ok));
+}
+function huntAnswer(it,ok){
+  if(it.state!=='fall'||HG.over)return;
+  const fast=performance.now()-it.q.t0<Math.max(1200,diff().sec*1000*.6);
+  bump(it.word.w,ok);save();
+  if(ok){
+    HG.combo++;HG.best=Math.max(HG.best,HG.combo);HG.right++;HG.missed.delete(it.word.w);
+    const tier=HG.combo>=10?3:HG.combo>=5?2:1;
+    let dmg=[0,1,1.6,2.5][tier]*(fast?2:1)*(HG.dbl>0?2:1);
+    it.state='gone';
+    HG.rockets.push({x:it.x,y:it.y,tier,dmg,crit:fast,t:0});
+    if(Math.random()<.11+Math.min(.12,HG.combo*.01)){
+      const pool=['freeze','dbl','shield'];if(HG.hearts<HG.maxHearts)pool.push('heart','heart');
+      HG.loot.push({k:rnd(pool),x:.5,y:fr(monGeom().headY)-.15,t:0});}
+  }else{
+    HG.combo=0;HG.wrong++;HG.missed.set(it.word.w,it.word.t);
+    HG.retry=HG.retry.filter(x=>x.w!==it.word.w);HG.retry.push({w:it.word.w,n:3});
+    it.state='wrong';it.flash=.9;
+    const m=HG.mon;m.rage++;m.hp=Math.min(m.max*1.5,m.hp+Math.max(1,m.max*.08));m.max=Math.max(m.max,m.hp);
+    HG.fx.push({k:'txt',x:.5,y:fr(monGeom().headY)-.12,s:'Монстр злится!',c:'#e2574c',t:0,life:1.1});
+  }
+  huntHud();HG.hold=ok?.2:1.1;
+}
+function huntUpdate(dt){
+  HG.t+=dt;HG.freeze-=dt;HG.dbl-=dt;
+  const m=HG.mon;m.hit-=dt;m.wob+=dt;m.chomp=(m.chomp||0)-dt;
+  if(m.dying>0){m.dying-=dt;if(m.dying<=0){HG.lvl++;newMonster();huntHud();hBanner(HG.mon.name,'Уровень '+HG.lvl);}}
+  /* spawning: keep the sky busy, faster as the monster rages */
+  const rageK=1+HG.mon.rage*.07;
+  const live=HG.items.filter(i=>i.state==='fall').length;
+  HG.spawnT-=dt;if(HG.spawnT<=0&&live<4&&m.dying<=0){spawnItem();HG.spawnT=HG.gap/(HG.speedUp*rageK);}
+  if(!live&&HG.spawnT>.6)HG.spawnT=.6;
+  const mouth=fr(monGeom().mouthY),vy=(mouth-START)/HG.fall*HG.speedUp*rageK;
+  for(const it of HG.items){
+    if(it.state==='fall'&&HG.freeze<=0){it.y+=vy*dt;const k=(it.y-START)/(mouth-START);if(k>.75)it.x+=(.5-it.x)*Math.min(1,dt*3);}
+    if(it.state==='wrong'){it.flash-=dt;it.y+=vy*2.5*dt;if(it.flash<=0)it.state='gone';}
+    if(it.state==='fall'&&it.y>=mouth){it.state='gone';m.chomp=.35;m.hp=Math.min(m.max,m.hp+m.max*.05);
+      bump(it.word.w,false);save();HG.missed.set(it.word.w,it.word.t);HG.retry.push({w:it.word.w,n:3});HG.combo=0;
+      if(HG.shield>0){HG.shield--;HG.fx.push({k:'txt',x:.5,y:mouth-.1,s:'Щит!',c:'#57c785',t:0,life:1});}
+      else{HG.hearts--;HG.fx.push({k:'flash',t:0,life:.5});HG.fx.push({k:'txt',x:.5,y:mouth-.14,s:'Съел: '+it.answer,c:'#e2574c',t:0,life:1.4});}
+      huntHud();if(HG.hearts<=0){huntOver();return;}
+    }
+  }
+  HG.items=HG.items.filter(i=>i.state!=='gone');
+  HG.hold-=dt;if(HG.hold<=0&&(!HG.active||HG.active.state!=='fall'))syncQuestion();
+  for(const r of HG.rockets){r.t+=dt*2.2;
+    if(r.t>=1&&!r.done){r.done=true;if(m.dying<=0){m.hp-=r.dmg;m.hit=.15;
+      HG.fx.push({k:'boom',x:.5,y:fr(monGeom().headY),r:.06+r.tier*.03,c:['','#f2c14e','#ef8a4c','#b48cf2'][r.tier],t:0,life:.45});
+      HG.fx.push({k:'txt',x:.5+(Math.random()-.5)*.3,y:fr(monGeom().headY)-.12,s:(r.crit?'КРИТ ':'')+'−'+(Math.round(r.dmg*10)/10),c:r.crit?'#f2c14e':'#efe8d8',t:0,life:.9});
+      if(m.hp<=0){m.dying=1.2;const g=HG.lvl%5===0?3:1;HG.gems+=g;HG.items.forEach(i=>i.state='gone');HG.items=[];
+        hBanner('Победа!','+'+g+' кристалл'+(g>1?'а':''));HG.fx.push({k:'boom',x:.5,y:fr(monGeom().cy),r:.3,c:'#f2c14e',t:0,life:1});}}}}
+  HG.rockets=HG.rockets.filter(r=>r.t<1.1);
+  for(const l of HG.loot){l.t+=dt;l.y+=dt*.35;if(l.t>1.1&&!l.got){l.got=true;
+    if(l.k==='heart')HG.hearts=Math.min(HG.maxHearts,HG.hearts+1);if(l.k==='freeze')HG.freeze=4;if(l.k==='dbl')HG.dbl=8;if(l.k==='shield')HG.shield++;
+    HG.fx.push({k:'txt',x:.5,y:.55,s:LOOT[l.k].t,c:LOOT[l.k].col,t:0,life:1.6});huntHud();}}
+  HG.loot=HG.loot.filter(l=>l.t<1.3);
+  for(const f of HG.fx)f.t+=dt;HG.fx=HG.fx.filter(f=>f.t<f.life);
+}
+/* Monster geometry in px: it stands on the ground, mouth open towards the falling words. */
+function monGeom(){const m=HG.mon,gy=HH*GROUND,s=Math.min(HW*.3,HH*.24)*(1+Math.min(.35,m.rage*.05))*(m.dying>0?Math.max(.2,m.dying/1.2):1);
+  const cy=gy-s*.78;return {cx:HW/2,gy,s,cy,headY:cy-s*.38,mouthY:cy-s*.12};}
+const fr=v=>v/HH;
+const MON_HUES=[95,355,270,175,30,320,200,10];
+function drawMonster(m){
+  const c=hctx,G0=monGeom();let {cx,cy,s,gy}=G0;
+  const breathe=1+Math.sin(m.wob*2.2)*.025,shake=m.hit>0?(Math.random()-.5)*s*.08:0;cx+=shake;
+  const hue=m.rage>=4?0:MON_HUES[(HG.lvl-1)%MON_HUES.length],sat=38+Math.min(30,m.rage*5),L=m.hit>0?62:24;
+  const near=HG.items.reduce((a,it)=>it.state==='fall'?Math.max(a,(it.y-START)/(fr(G0.mouthY)-START)):a,0);
+  const open=Math.max(.15,Math.min(1,.35+near*.6+Math.min(.3,m.rage*.05)-(m.chomp>0?m.chomp*2:0)));
+  c.save();
+  // ground shadow
+  c.fillStyle='rgba(0,0,0,.35)';c.beginPath();c.ellipse(cx,gy-2,s*1.25,s*.16,0,0,7);c.fill();
+  // rage aura
+  if(m.rage>0){const g=c.createRadialGradient(cx,cy,s*.4,cx,cy,s*1.6);g.addColorStop(0,`rgba(216,52,79,${Math.min(.35,m.rage*.06)})`);g.addColorStop(1,'rgba(216,52,79,0)');c.fillStyle=g;c.fillRect(cx-s*1.8,cy-s*1.8,s*3.6,s*3.6);}
+  c.translate(cx,cy);c.scale(1,breathe);
+  // tail
+  c.strokeStyle=`hsl(${hue} ${sat}% ${L-6}%)`;c.lineWidth=s*.22;c.lineCap='round';c.beginPath();c.moveTo(s*.7,s*.45);c.quadraticCurveTo(s*1.5,s*.6,s*1.45,s*.05+Math.sin(m.wob*3)*s*.08);c.stroke();
+  c.fillStyle=`hsl(${hue} ${sat}% ${L+18}%)`;c.beginPath();c.moveTo(s*1.38,s*.12);c.lineTo(s*1.62,-s*.12);c.lineTo(s*1.55,s*.18);c.fill();
+  // back spikes
+  c.fillStyle=`hsl(${hue} ${Math.max(10,sat-10)}% ${L+30}%)`;
+  for(let i=0;i<7;i++){const a=Math.PI*(1.12+i*.11),bx=Math.cos(a)*s*.95,by=Math.sin(a)*s*.72,h=s*(.22+(i===3?.12:0)+Math.min(.12,m.rage*.02));
+    c.beginPath();c.moveTo(bx-s*.08,by+s*.04);c.lineTo(bx+Math.cos(a)*h,by+Math.sin(a)*h);c.lineTo(bx+s*.08,by+s*.04);c.fill();}
+  // legs
+  c.fillStyle=`hsl(${hue} ${sat}% ${L-4}%)`;[-1,1].forEach(sd=>{c.beginPath();c.ellipse(sd*s*.55,s*.62,s*.26,s*.2,0,0,7);c.fill();
+    c.fillStyle='#efe8d8';for(let k=0;k<3;k++){c.beginPath();const tx=sd*s*.55+(k-1)*s*.11;c.moveTo(tx-s*.04,s*.74);c.lineTo(tx,s*.86);c.lineTo(tx+s*.04,s*.74);c.fill();}c.fillStyle=`hsl(${hue} ${sat}% ${L-4}%)`;});
+  // body with scaly gradient
+  const bg=c.createRadialGradient(-s*.3,-s*.4,s*.2,0,0,s*1.15);bg.addColorStop(0,`hsl(${hue} ${sat}% ${L+14}%)`);bg.addColorStop(1,`hsl(${hue} ${sat}% ${Math.max(8,L-10)}%)`);
+  c.fillStyle=bg;c.beginPath();c.ellipse(0,0,s,s*.78,0,0,7);c.fill();
+  c.strokeStyle=`hsla(${hue} ${sat}% ${L+22}% / .25)`;c.lineWidth=Math.max(1,s*.015);
+  for(let r=0;r<4;r++)for(let k=-3;k<=3;k++){const sx=k*s*.22+(r%2)*s*.11,sy=-s*.45+r*s*.17;if(Math.hypot(sx/s,sy/(s*.78))>.86)continue;c.beginPath();c.arc(sx,sy,s*.09,.15*Math.PI,.85*Math.PI);c.stroke();}
+  // belly plates
+  c.fillStyle=`hsl(${(hue+30)%360} ${Math.max(15,sat-10)}% ${L+26}%)`;c.beginPath();c.ellipse(0,s*.38,s*.5,s*.3,0,0,7);c.fill();
+  c.strokeStyle=`hsla(${hue} 30% 15% / .35)`;c.lineWidth=Math.max(1,s*.02);for(let k=0;k<3;k++){c.beginPath();c.moveTo(-s*.42+k*s*.04,s*.24+k*s*.11);c.lineTo(s*.42-k*s*.04,s*.24+k*s*.11);c.stroke();}
+  // arms with claws, raised more when angry
+  [-1,1].forEach(sd=>{const ay=s*(.05-Math.min(.25,m.rage*.05)),ax=sd*s*.95;
+    c.fillStyle=`hsl(${hue} ${sat}% ${L}%)`;c.beginPath();c.ellipse(ax,ay,s*.2,s*.13,sd*.5,0,7);c.fill();
+    c.fillStyle='#efe8d8';for(let k=0;k<3;k++){const tx=ax+sd*s*.14,ty=ay-s*.1+k*s*.09;c.beginPath();c.moveTo(tx,ty);c.lineTo(tx+sd*s*.14,ty-s*.04);c.lineTo(tx,ty+s*.05);c.fill();}});
+  // horns: more and longer with rage
+  const horns=Math.min(3,1+Math.floor(m.rage/2));c.fillStyle='#e8dcc0';
+  for(let i=0;i<horns;i++)[-1,1].forEach(sd=>{const bx=sd*s*(.32+i*.2),by=-s*(.62-i*.06),len=s*(.42+Math.min(.25,m.rage*.04)-i*.08);
+    c.beginPath();c.moveTo(bx-sd*s*.07,by);c.quadraticCurveTo(bx+sd*len*.7,by-len*.5,bx+sd*len*.55,by-len);c.quadraticCurveTo(bx+sd*len*.25,by-len*.45,bx+sd*s*.08,by+s*.02);c.fill();});
+  // eyes: glowing slits
+  const eyeCol=m.rage>=2?'#ff4a3d':'#f2c14e';
+  [-1,1].forEach(sd=>{c.save();c.translate(sd*s*.32,-s*.36);c.rotate(sd*.25);
+    c.shadowColor=eyeCol;c.shadowBlur=s*.25;c.fillStyle=eyeCol;c.beginPath();c.ellipse(0,0,s*.15,s*.085,0,0,7);c.fill();c.shadowBlur=0;
+    c.fillStyle='#120a0a';c.beginPath();c.ellipse(Math.sin(m.wob)*s*.03,0,s*.025,s*.075,0,0,7);c.fill();
+    c.strokeStyle=`hsl(${hue} ${sat}% 10%)`;c.lineWidth=s*.06;c.lineCap='round';c.beginPath();c.moveTo(-s*.17,-s*(.09+Math.min(.06,m.rage*.015)));c.lineTo(s*.15,-s*.13);c.stroke();c.restore();});
+  // nostrils
+  c.fillStyle='#120a0a';[-1,1].forEach(sd=>{c.beginPath();c.ellipse(sd*s*.08,-s*.22,s*.025,s*.018,0,0,7);c.fill();});
+  // mouth: opens toward falling words
+  const mw=s*.62,mh=s*(.08+open*.3),my=-s*.1;
+  c.fillStyle='#3a0b12';c.beginPath();c.ellipse(0,my+mh*.5,mw*.5,mh*.6+1,0,0,7);c.fill();
+  c.fillStyle='#7a1a24';c.beginPath();c.ellipse(0,my+mh*.85,mw*.3,mh*.25+1,0,0,7);c.fill();
+  c.fillStyle='#f4ecd8';const nT=6;
+  for(let k=0;k<nT;k++){const tx=-mw*.42+k*(mw*.84/(nT-1)),big=(k===0||k===nT-1)?1.7:1;
+    c.beginPath();c.moveTo(tx-s*.035,my);c.lineTo(tx,my+s*.07*big);c.lineTo(tx+s*.035,my);c.fill();
+    c.beginPath();c.moveTo(tx-s*.03,my+mh*1.05);c.lineTo(tx,my+mh*1.05-s*.05*big);c.lineTo(tx+s*.03,my+mh*1.05);c.fill();}
+  c.restore();
+  // smoke from nostrils when angry
+  if(m.rage>=2&&Math.random()<.15)HG.fx.push({k:'smoke',x:fr(cx)/1*0+(cx/HW)+(Math.random()-.5)*.03,y:fr(cy-s*.25),t:0,life:1.2});
+  // hp bar + name
+  const bw=Math.min(HW-32,260),bx=HW/2-bw/2,by=8;
+  c.fillStyle='rgba(0,0,0,.5)';c.fillRect(bx,by,bw,7);c.fillStyle=m.rage>2?'#e2574c':'#57c785';c.fillRect(bx,by,bw*Math.max(0,m.hp/m.max),7);
+  c.font='600 11px Golos Text, sans-serif';c.textAlign='center';c.fillStyle='#9db0a5';c.textBaseline='top';
+  c.fillText(m.name+(m.rage?' · ярость '+m.rage:''),HW/2,by+10);
+}
+function huntDraw(){
+  if(!HW)return;const c=hctx;c.clearRect(0,0,HW,HH);
+  const g=c.createLinearGradient(0,0,0,HH);g.addColorStop(0,'#1b1730');g.addColorStop(1,'#16231e');c.fillStyle=g;c.fillRect(0,0,HW,HH);
+  if(HG.freeze>0){c.fillStyle='rgba(108,201,239,.08)';c.fillRect(0,0,HW,HH);}
+  c.fillStyle='#2a3d33';c.fillRect(0,HH*GROUND-4,HW,HH*(1-GROUND)+4);c.fillStyle='#34493f';for(let i=0;i<9;i++){c.beginPath();c.ellipse((i+.5)*HW/9,HH*GROUND-3,HW/22,5,0,Math.PI,0);c.fill();}
+  drawMonster(HG.mon);
+  for(const it of [...HG.items].sort((a,b)=>(a===HG.active)-(b===HG.active))){
+    const fs=Math.max(14,Math.min(20,HW*.045));c.font=`700 ${fs}px Golos Text, sans-serif`;
+    const tw=Math.min(HW*.7,c.measureText(it.prompt).width)+22,th=fs*1.9,x=Math.max(8,Math.min(HW-tw-8,it.x*HW-tw/2)),y=it.y*HH-th;
+    const act=it===HG.active;
+    c.fillStyle=it.state==='wrong'?'#e2574c':act?'#f2c14e':'rgba(38,57,47,.95)';rr2(c,x,y,tw,th,th/2);c.fill();
+    if(act&&it.state==='fall'){c.strokeStyle='#fff3c4';c.lineWidth=2;c.stroke();}
+    c.fillStyle=act||it.state==='wrong'?'#1a1405':'#efe8d8';c.textAlign='center';c.textBaseline='middle';c.fillText(it.prompt,x+tw/2,y+th/2,tw-14);
+    if(it.state==='fall'){const k=(it.y-START)/(fr(monGeom().mouthY)-START);if(k>.7){c.fillStyle=`rgba(226,87,76,${(k-.7)*2})`;c.fillRect(x+th/2,y+th+2,(tw-th)*(1-(k-.7)/.3),3);}}
+  }
+  for(const r of HG.rockets){if(r.done)continue;const k=Math.min(1,r.t),ty=fr(monGeom().headY),x=(r.x+(.5-r.x)*k)*HW,y=(r.y+(ty-r.y)*k)*HH;
+    const col=['','#f2c14e','#ef8a4c','#b48cf2'][r.tier],sz=[0,9,13,18][r.tier];
+    for(let q=1;q<=4;q++){c.globalAlpha=.5/q;c.fillStyle=q<3?col:'#efe8d8';c.beginPath();c.arc(x,y-q*sz*1.1,sz*(1-q*.15),0,7);c.fill();}
+    c.globalAlpha=1;c.shadowColor=col;c.shadowBlur=sz*2;c.fillStyle=col;c.beginPath();c.arc(x,y,sz,0,7);c.fill();c.shadowBlur=0;}
+  for(const l of HG.loot){const L=LOOT[l.k],x=HW*.5+Math.sin(l.t*6)*20,y=l.y*HH;c.fillStyle=L.col;c.beginPath();c.arc(x,y,14,0,7);c.fill();
+    c.fillStyle='#14201b';c.font='800 13px Unbounded, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(L.ic,x,y+1);}
+  for(const f of HG.fx){const k=1-f.t/f.life;c.globalAlpha=Math.max(0,k);
+    if(f.k==='txt'){c.fillStyle=f.c;c.font=`700 ${Math.max(13,HW*.036)}px Unbounded, sans-serif`;c.textAlign='center';c.textBaseline='middle';c.fillText(f.s,Math.min(HW-60,Math.max(60,f.x*HW)),f.y*HH-(1-k)*24);}
+    if(f.k==='boom'){c.globalAlpha=k*.5;c.fillStyle=f.c;c.beginPath();c.arc(f.x*HW,f.y*HH,f.r*Math.min(HW,HH)*(1.2-k*.5),0,7);c.fill();}
+    if(f.k==='smoke'){c.globalAlpha=k*.35;c.fillStyle='#9aa0a6';c.beginPath();c.arc(f.x*HW,(f.y-(1-k)*.08)*HH,6+(1-k)*14,0,7);c.fill();}
+    if(f.k==='flash'){c.globalAlpha=k*.3;c.fillStyle='#d8344f';c.fillRect(0,0,HW,HH);}
+    c.globalAlpha=1;}
+  const st=[];if(HG.freeze>0)st.push('❄ '+Math.ceil(HG.freeze));if(HG.dbl>0)st.push('×2 '+Math.ceil(HG.dbl));if(HG.shield>0)st.push('◈ '+HG.shield);
+  if(st.length){c.font='700 12px Golos Text, sans-serif';c.textAlign='right';c.textBaseline='top';c.fillStyle='#efe8d8';c.fillText(st.join('   '),HW-8,30);}
+}
+function rr2(c,x,y,w,h,r){c.beginPath();c.roundRect?c.roundRect(x,y,w,h,r):c.rect(x,y,w,h);}
+function huntLoop(ts){
+  if(!HG||HG.over||$('hunt').hidden)return;const dt=Math.min(.05,(ts-HG.last)/1000||0);HG.last=ts;
+  if(!HG.paused)huntUpdate(dt*diff().spd/.7);
+  if(HG&&!HG.over)huntDraw();requestAnimationFrame(huntLoop);
+}
+function huntHud(){$('hLvl').textContent=HG.lvl;$('hLives').textContent='♥'.repeat(Math.max(0,HG.hearts))+'♡'.repeat(Math.max(0,HG.maxHearts-HG.hearts));
+  $('hCombo').textContent=HG.combo>1?'серия ×'+HG.combo+(HG.combo>=10?' · метеоры':HG.combo>=5?' · бомбы':''):'';}
+let hbT=0;function hBanner(t,s){$('hbT').textContent=t;$('hbS').textContent=s||'';$('hBanner').classList.add('show');clearTimeout(hbT);hbT=setTimeout(()=>$('hBanner').classList.remove('show'),1700);}
+function huntOver(){
+  HG.over=true;store.gems+=HG.gems;store.huntBest=store.huntBest||{};const dk=store.diff||2;const nb=HG.lvl>(store.huntBest[dk]||0);if(nb)store.huntBest[dk]=HG.lvl;save();
+  $('hoTitle').textContent=(nb?'Новый рекорд':'Монстр победил')+' · '+diff().name;
+  $('hoLvl').textContent=HG.lvl;const tot=HG.right+HG.wrong;$('hoAcc').textContent=tot?Math.round(HG.right/tot*100)+'%':'—';$('hoGems').textContent=HG.gems;
+  const m=$('hoMissed');m.innerHTML='';
+  if(!HG.missed.size){$('hoMissHead').textContent='Ни одного пропущенного слова.';m.hidden=true;}
+  else{$('hoMissHead').textContent='Повтори эти слова:';m.hidden=false;HG.missed.forEach((t,w)=>{const d=document.createElement('div'),b=document.createElement('b'),s=document.createElement('span');b.textContent=w;s.textContent=t;d.append(b,s);m.appendChild(d);});}
+  $('huntOver').hidden=false;
+}
+function huntQuit(){if(HG&&!HG.over){store.gems+=HG.gems;save();}if(HG)HG.over=true;showMenu();}
+$('goHunt').onclick=huntStart;
+$('hPauseBtn').onclick=()=>{if(!HG||HG.over)return;HG.paused=true;$('huntPause').hidden=false;};
+$('hResume').onclick=()=>{HG.paused=false;HG.last=performance.now();$('huntPause').hidden=true;};
+$('hQuit').onclick=huntQuit;$('hoMenu').onclick=huntQuit;$('hoAgain').onclick=huntStart;
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&HG&&!HG.over&&!$('hunt').hidden){HG.paused=true;$('huntPause').hidden=false;}});
 
 /* ================= BOOT ================= */
 deck=deckFor(store.deck);newGame();resize();draw();showMenu();
