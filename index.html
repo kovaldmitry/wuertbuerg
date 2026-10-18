@@ -1,0 +1,1621 @@
+<!doctype html>
+<html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Wuertbuerg">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#16231e">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
+</head><body>
+<title>Wuertbuerg</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap">
+<style>
+/* Layout: one-screen learning app — battle (HUD, merge board, quiz deck) and picture lessons (photo above, question card below). Single deliberate dark look: sandstone path on forest-green board, Luxembourg red & sky as accents, gold for rewards. */
+:root{
+  --ground:#16231e; --tile:#21332b;
+  --sand:#cdb98f; --cream:#efe8d8; --mute:#9db0a5;
+  --gold:#f2c14e; --red:#d8344f; --sky:#59b8e6; --violet:#b48cf2;
+  --ok:#57c785; --bad:#e2574c;
+  --panel:#1d2c26; --panel-hi:#26392f; --line:#34493f;
+  --f-display:'Unbounded','Arial Black',system-ui,sans-serif;
+  --f-body:'Golos Text',system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html{height:100%;box-sizing:border-box;background:var(--ground)}
+*,*::before,*::after{box-sizing:border-box}
+body{height:100%;margin:0;overflow:hidden;background:var(--ground);color:var(--cream);font-family:var(--f-body);font-size:15px;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;touch-action:manipulation}
+button:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+.screen{height:100%;display:flex;flex-direction:column;gap:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:8px;max-width:560px;margin:0 auto}
+
+.hud{display:flex;align-items:center;gap:12px;font-variant-numeric:tabular-nums;min-height:36px}
+.hud .stat{display:flex;align-items:center;gap:6px;font-family:var(--f-display);font-weight:700;font-size:14px}
+.label{font-family:var(--f-body);font-weight:600;font-size:11px;color:var(--mute);letter-spacing:.06em;text-transform:uppercase}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--gold);box-shadow:inset 0 -2px 0 rgba(0,0,0,.25);flex:none}
+.gem{width:11px;height:11px;background:var(--sky);transform:rotate(45deg);border-radius:2px;flex:none;box-shadow:inset -2px -2px 0 rgba(0,0,0,.2)}
+.heart{color:var(--red);font-size:16px;line-height:1}
+.spacer{flex:1}
+.iconbtn{min-width:36px;height:36px;padding:0 10px;border-radius:10px;background:var(--panel);display:grid;place-items:center;font-family:var(--f-display);font-size:13px}
+
+#stage{position:relative;flex:1;min-height:0;max-height:46vh}
+#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+#banner{position:absolute;left:0;right:0;top:36%;text-align:center;pointer-events:none;opacity:0;transition:opacity .35s}
+#banner.show{opacity:1}
+#banner b{display:block;font-family:var(--f-display);font-weight:800;font-size:26px;text-shadow:0 3px 0 rgba(0,0,0,.45)}
+#banner span{display:inline-block;margin-top:6px;font-size:13px;background:rgba(10,18,15,.8);padding:4px 10px;border-radius:999px}
+
+/* chest draft */
+#chest{position:absolute;inset:0;background:rgba(12,20,17,.9);border-radius:14px;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:10px;z-index:3}
+#chest h3{margin:0 0 2px;font-family:var(--f-display);font-weight:800;font-size:18px;text-align:center;color:var(--gold)}
+#chest p{margin:0 0 4px;text-align:center;font-size:12px;color:var(--mute)}
+.card{display:flex;align-items:center;gap:12px;text-align:left;background:var(--panel-hi);border:2px solid var(--line);border-radius:12px;padding:9px 12px;animation:pop .28s backwards}
+.card:nth-child(4){animation-delay:.06s}.card:nth-child(5){animation-delay:.12s}
+.card .ic{flex:none;width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:14px;color:#14201b}
+.card b{display:block;font-size:15px}
+.card small{display:block;font-size:12px;color:var(--mute);line-height:1.3}
+.card .rar{margin-left:auto;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+.card.r1{border-color:#5e7a6c}.card.r1 .rar{color:var(--mute)}
+.card.r2{border-color:var(--sky)}.card.r2 .rar{color:var(--sky)}
+.card.r3{border-color:var(--violet);box-shadow:0 0 18px rgba(180,140,242,.35)}.card.r3 .rar{color:var(--violet)}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+
+/* quiz card (shared by battle and pictures) */
+.quiz{background:var(--panel);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:9px;border:1px solid var(--line);transition:border-color .2s,box-shadow .2s}
+.quiz.boss{border-color:var(--sky);box-shadow:0 0 0 2px rgba(89,184,230,.25)}
+.quest{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--cream);background:var(--ground);border-radius:8px;padding:5px 8px}
+.quest .q-t{flex:1;min-width:0}
+.quest .bar{width:64px;height:6px;border-radius:3px;background:var(--line);overflow:hidden;flex:none}
+.quest .bar i{display:block;height:100%;background:var(--gold);transition:width .3s}
+.quest .n{font-family:var(--f-display);font-size:11px;color:var(--gold);font-variant-numeric:tabular-nums}
+.qhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.qlabel{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.quiz.boss .qlabel{color:var(--sky)}
+.combo{font-family:var(--f-display);font-weight:700;font-size:12px;color:var(--gold);font-variant-numeric:tabular-nums;white-space:nowrap}
+.qprompt{font-family:var(--f-display);font-weight:700;font-size:26px;line-height:1.18;text-wrap:balance;min-height:28px;overflow-wrap:anywhere}
+.qprompt.sm{font-size:18px;font-family:var(--f-body);font-weight:600;line-height:1.35}
+.qprompt .gap{display:inline-block;min-width:70px;border-bottom:3px solid var(--gold);color:var(--gold)}
+.qsub{font-size:13px;color:var(--mute);margin-top:-4px}
+.qbody{min-height:108px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opt{min-height:54px;padding:8px 10px;border-radius:12px;background:var(--panel-hi);border:1px solid var(--line);font-weight:600;font-size:15px;line-height:1.2;text-align:center;overflow-wrap:anywhere;transition:background .12s,transform .08s}
+.opt:active{transform:scale(.97)}
+.opts.eight{gap:6px}.opts.eight .opt{min-height:44px;padding:6px 8px;font-size:14px;border-radius:10px}
+.opt.ok{background:var(--ok);border-color:var(--ok);color:#0f2018}
+.opt.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.slots{display:flex;gap:4px;flex-wrap:wrap;min-height:42px;align-items:center;padding:6px 10px;border-radius:10px;background:var(--ground);font-family:var(--f-display);font-size:20px;font-weight:700;letter-spacing:.03em;overflow-wrap:anywhere}
+.slots.words{font-family:var(--f-body);font-size:16px;font-weight:600;letter-spacing:0;gap:6px}
+.slots .caret{width:2px;height:22px;background:var(--gold);animation:blink 1s steps(2) infinite}
+.slots.ok{color:var(--ok)} .slots.bad{color:var(--bad)}
+.reveal{font-size:13px;color:var(--mute);margin-top:6px;line-height:1.4}
+.reveal b{color:var(--ok)}
+.tiles{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tile{min-width:40px;height:42px;padding:0 9px;border-radius:10px;background:var(--panel-hi);border:1px solid var(--line);font-family:var(--f-display);font-weight:700;font-size:17px}
+.tile.w{font-family:var(--f-body);font-size:15px;font-weight:600}
+.tile:disabled{opacity:.2}
+.tile.del{color:var(--mute);font-family:var(--f-body);font-size:14px;font-weight:500;margin-left:auto}
+@keyframes blink{50%{opacity:0}}
+.status{font-size:12px;color:var(--mute);text-align:center;line-height:1.35;font-variant-numeric:tabular-nums}
+.status b{color:var(--gold);font-family:var(--f-display);font-weight:700}
+
+/* overlays */
+.overlay{position:fixed;inset:0;background:rgba(12,20,17,.96);display:flex;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-bottom,0px));z-index:20;overflow-y:auto}
+.sheet{width:100%;max-width:440px;display:flex;flex-direction:column;gap:14px;margin:auto}
+.brand{font-family:var(--f-display);font-weight:800;font-size:38px;line-height:1;letter-spacing:-.01em}
+.brand em{font-style:normal;color:var(--red)}
+.sub{color:var(--mute);font-size:15px;line-height:1.45;margin:0}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpis.two{grid-template-columns:1fr 1fr}
+.kpi{background:var(--panel);border-radius:12px;padding:10px 12px;min-width:0}
+.kpi small{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.kpi b{display:flex;align-items:center;gap:6px;font-family:var(--f-display);font-size:19px;font-variant-numeric:tabular-nums}
+.modes{display:grid;gap:10px}
+.mode{display:flex;align-items:center;gap:14px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}
+.mode .ic{flex:none;width:48px;height:48px;border-radius:14px;display:grid;place-items:center}
+.mode b{display:block;font-family:var(--f-display);font-weight:700;font-size:17px}
+.mode small{display:block;color:var(--mute);font-size:13px;line-height:1.35;margin-top:2px}
+.mode.primary{background:var(--gold);border-color:var(--gold);color:#2a1f05}
+.mode.primary small{color:#5a4612}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.btn{min-height:50px;border-radius:14px;background:var(--panel-hi);border:1px solid var(--line);font-weight:600;font-size:15px;padding:0 16px}
+.btn.primary{background:var(--gold);border-color:var(--gold);color:#2a1f05;font-family:var(--f-display);font-weight:800}
+.btn.danger{color:var(--bad)}
+.btn.slim{min-height:40px;font-size:14px}
+h2{font-family:var(--f-display);font-weight:800;font-size:24px;margin:0;text-wrap:balance}
+.topbar{display:flex;align-items:center;gap:10px}
+.topbar h2{flex:1;min-width:0}
+.radio{display:flex;gap:12px;align-items:center;background:var(--panel);border-radius:12px;padding:12px;font-weight:500;line-height:1.3}
+.radio input{accent-color:var(--gold);width:18px;height:18px;flex:none}
+.radio small{display:block;color:var(--mute);font-size:12px;font-weight:400}
+textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground);border:1px solid var(--line);color:var(--cream);font:14px/1.5 var(--f-body);padding:10px;resize:vertical;user-select:text;-webkit-user-select:text}
+.hint{font-size:13px;color:var(--mute);line-height:1.4;margin:0}
+.err{color:var(--bad);font-size:13px;margin:0}
+.missed{background:var(--panel);border-radius:12px;padding:6px 12px;max-height:190px;overflow-y:auto}
+.missed div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.missed div:last-child{border-bottom:0}
+.missed b{font-family:var(--f-display);font-weight:700;font-size:13px}
+.ups{display:grid;gap:8px}
+.up{display:flex;align-items:center;gap:12px;background:var(--panel);border-radius:14px;padding:12px}
+.up .t{flex:1;min-width:0}
+.up b{display:block;font-weight:700}
+.up small{display:block;color:var(--mute);font-size:12px;line-height:1.3}
+.pips{display:flex;gap:3px;margin-top:6px}.pips i{width:16px;height:5px;border-radius:3px;background:var(--line)}.pips i.on{background:var(--sky)}
+.buy{min-width:74px;height:40px;border-radius:10px;background:var(--sky);color:#0d2230;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;font-variant-numeric:tabular-nums}
+.buy .gem{background:#0d2230}
+.buy:disabled{background:var(--panel-hi);color:var(--mute)}.buy:disabled .gem{background:var(--mute)}
+
+/* gallery */
+.gal{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gcell{position:relative;border-radius:12px;overflow:hidden;background:var(--panel);aspect-ratio:4/3.6;display:flex;flex-direction:column;text-align:left;max-width:100%}
+.gcell img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--tile)}
+.gcell span{font-size:11px;font-weight:600;padding:4px 6px 5px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gcell .st{position:absolute;top:4px;right:4px;background:rgba(12,20,17,.82);border-radius:6px;padding:1px 5px;font-size:11px;color:var(--gold);letter-spacing:1px}
+.phr{background:var(--panel);border-radius:14px;padding:4px 12px}
+.phr div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.phr div:last-child{border-bottom:0}
+.phr b{font-weight:700}
+.phr span{color:var(--mute);text-align:right}
+
+/* picture lesson */
+#lesson .screen{gap:10px}
+.prog{height:6px;border-radius:3px;background:var(--panel-hi);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--gold);transition:width .3s}
+.photo{position:relative;flex:none;border-radius:14px;overflow:hidden;background:var(--panel);aspect-ratio:4/3;max-height:34vh;max-width:100%;align-self:center;width:100%}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.photo .zoom{position:absolute;right:8px;bottom:8px;background:rgba(12,20,17,.75);border-radius:8px;padding:4px 8px;font-size:12px}
+.lessonbody{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.wordlist{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.wordlist div{background:var(--panel-hi);border-radius:10px;padding:8px 10px;min-width:0}
+.wordlist b{display:block;font-weight:700;font-size:15px;overflow-wrap:anywhere}
+.wordlist span{font-size:12px;color:var(--mute)}
+.desc{display:flex;flex-direction:column;gap:10px}
+.desc p{margin:0;font-size:17px;font-weight:600;line-height:1.4}
+.desc p small{display:block;font-size:13px;font-weight:400;color:var(--mute);margin-top:2px}
+.desc.hide-ru small{visibility:hidden}
+.stars{font-size:34px;letter-spacing:6px;color:var(--gold);text-align:center;line-height:1}
+.stars i{font-style:normal;color:var(--line)}
+/* hard-mode lesson parts */
+.inrow{display:flex;flex-direction:column;gap:6px}
+.inline{display:flex;gap:8px}
+.tin{flex:1;min-width:0;height:48px;border-radius:12px;background:var(--ground);border:1px solid var(--line);color:var(--cream);font:600 18px var(--f-body);padding:0 12px;user-select:text;-webkit-user-select:text}
+.tin:focus{outline:2px solid var(--gold);outline-offset:0}
+.tin:disabled{opacity:.6}
+.go{min-height:48px;padding:0 18px}
+.keys{display:flex;gap:6px}
+.key{width:44px;height:36px;border-radius:9px;background:var(--panel-hi);border:1px solid var(--line);font:700 17px var(--f-body)}
+.fb{font-size:14px;line-height:1.4;min-height:20px;color:var(--mute)}
+.fb.ok{color:var(--ok)}.fb.mid{color:var(--gold)}.fb.no{color:var(--bad)}
+.fb b{color:var(--cream)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:13px;font-weight:600;padding:5px 9px;border-radius:999px;background:rgba(87,199,133,.15);color:var(--ok);border:1px solid rgba(87,199,133,.4)}
+.mask{font-family:var(--f-display);font-size:20px;letter-spacing:.06em;color:var(--gold);min-height:0}
+.mask:empty{display:none}
+.model{font-size:18px;font-weight:700;line-height:1.4;color:var(--ok);background:var(--ground);border-radius:10px;padding:10px 12px}
+.helpline{font-size:13px;color:var(--mute);line-height:1.45;background:var(--ground);border-radius:10px;padding:8px 10px}
+.linkbtn{align-self:flex-start;color:var(--sky);font-size:13px;padding:0;text-decoration:underline}
+.g-ok{color:var(--ok)}.g-mid{color:var(--gold)}.g-no{color:var(--bad)}
+.timer{font-size:14px}
+#lesson.typing .photo{max-height:20vh}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--panel);border-radius:12px;padding:4px;gap:4px}
+.seg button{min-height:40px;border-radius:9px;font-weight:600;color:var(--mute)}
+.seg button[aria-checked="true"]{background:var(--gold);color:#2a1f05}
+#zoom{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:40;display:flex;align-items:center;justify-content:center;padding:16px}
+#zoom img{max-width:100%;max-height:100%;border-radius:8px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-height:700px){.opts.eight .opt{min-height:38px;font-size:13px}}
+@media (max-height:660px){.qprompt{font-size:21px}.qbody{min-height:96px}.opt{min-height:46px}.photo{max-height:28vh}}
+</style>
+
+<!-- ============ BATTLE ============ -->
+<div class="screen" id="battle">
+  <header class="hud">
+    <div class="stat"><span class="label">Волна</span><span id="hWave">1</span></div>
+    <div class="stat"><span class="heart">♥</span><span id="hHearts">10</span></div>
+    <div class="stat"><span class="dot"></span><span id="hCoins">0</span></div>
+    <div class="spacer"></div>
+    <button class="iconbtn" id="pauseBtn" aria-label="Пауза">II</button>
+  </header>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="banner"><b id="bTitle"></b><span id="bSub"></span></div>
+    <div id="chest" hidden></div>
+  </div>
+  <section class="quiz" id="quiz" aria-live="polite">
+    <div class="quest" id="quest"><span class="q-t" id="questT"></span><span class="bar"><i id="questBar"></i></span><span class="n" id="questN"></span></div>
+    <div class="qhead"><span class="qlabel" id="qLabel">Переведи</span><span class="combo" id="combo"></span></div>
+    <div class="qprompt" id="qPrompt"></div>
+    <div class="qbody" id="qBody"></div>
+  </section>
+  <div class="status" id="status">Сундук за каждые 4 верных подряд · быстрый ответ даёт ×2</div>
+</div>
+
+<!-- ============ MENU ============ -->
+<div class="overlay" id="menu">
+  <div class="sheet">
+    <div class="brand">Wuert<em>buerg</em></div>
+    <p class="sub">Люксембургские слова: учишь, защищаешь замок, описываешь картинки к Sproochentest.</p>
+    <div class="kpis">
+      <div class="kpi"><small>Освоено</small><b id="mMastered">0</b></div>
+      <div class="kpi"><small>Рекорд</small><b id="mBest">—</b></div>
+      <div class="kpi"><small>Кристаллы</small><b><span class="gem"></span><span id="mGems">0</span></b></div>
+    </div>
+    <div class="modes">
+      <button class="mode primary" id="goBattle"><span class="ic" style="background:#2a1f05"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M4 23V9l3 2V6l3 2V4l3 3 3-3v4l3-2v5l3-2v14z" fill="#f2c14e"/><rect x="11" y="16" width="4" height="7" rx="2" fill="#2a1f05"/></svg></span><span><b>Битва за замок</b><small id="mDeckLine">Словарь: мой список</small></span></button>
+      <button class="mode" id="goPics"><span class="ic" style="background:var(--sky)"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="3" y="5" width="20" height="16" rx="3" fill="none" stroke="#0d2230" stroke-width="2.2"/><circle cx="9" cy="10.5" r="2" fill="#0d2230"/><path d="M5 19l5-5 3 3 4-5 4 7" fill="none" stroke="#0d2230" stroke-width="2.2" stroke-linejoin="round"/></svg></span><span><b>Описание картинок</b><small id="mPicsLine">30 картинок · 0 пройдено</small></span></button>
+      <button class="mode" id="goShop"><span class="ic" style="background:var(--violet)"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 3l8 8-8 12-8-12z" fill="none" stroke="#24123d" stroke-width="2.2" stroke-linejoin="round"/><path d="M5 11h16" stroke="#24123d" stroke-width="2.2"/></svg></span><span><b>Мастерская</b><small>Постоянные улучшения за кристаллы</small></span></button>
+    </div>
+    <button class="btn" id="goDeck">Словарь для битвы</button>
+  </div>
+</div>
+
+<!-- ============ DECK SETTINGS ============ -->
+<div class="overlay" id="settings" hidden>
+  <div class="sheet">
+    <div class="topbar"><h2>Словарь для битвы</h2></div>
+    <label class="radio"><input type="radio" name="deck" value="mine"><span>Мой список + картинки<small id="cMine"></small></span></label>
+    <label class="radio"><input type="radio" name="deck" value="pics"><span>Слова к картинкам<small id="cPics"></small></span></label>
+    <label class="radio"><input type="radio" name="deck" value="lb"><span>Базовые слова<small id="cLb"></small></span></label>
+    <label class="radio"><input type="radio" name="deck" value="all"><span>Всё вместе<small id="cAll"></small></span></label>
+    <label class="radio"><input type="radio" name="deck" value="custom"><span>Свой список<small>Вставь ниже: слово = перевод</small></span></label>
+    <textarea id="customTxt" placeholder="Schmetterling = бабочка&#10;Eichhörnchen = белка&#10;Regenschirm = зонт&#10;Kühlschrank = холодильник"></textarea>
+    <p class="err" id="deckErr" hidden></p>
+    <div class="row"><button class="btn" id="setCancel">Назад</button><button class="btn primary" id="setSave">Сохранить</button></div>
+    <button class="btn danger slim" id="resetBtn">Сбросить прогресс слов</button>
+  </div>
+</div>
+
+<!-- ============ SHOP ============ -->
+<div class="overlay" id="shop" hidden>
+  <div class="sheet">
+    <div class="topbar"><h2>Мастерская</h2><div class="kpi" style="padding:6px 10px"><b><span class="gem"></span><span id="sGems">0</span></b></div></div>
+    <p class="hint">Кристаллы дают за отбитые волны, выполненные заказы и пройденные картинки. Улучшения действуют во всех будущих битвах.</p>
+    <div class="ups" id="ups"></div>
+    <button class="btn" id="shopBack">Назад</button>
+  </div>
+</div>
+
+<!-- ============ PAUSE / GAME OVER ============ -->
+<div class="overlay" id="pause" hidden>
+  <div class="sheet">
+    <h2>Пауза</h2>
+    <button class="btn primary" id="resumeBtn">Продолжить</button>
+    <button class="btn" id="quitBtn">Выйти в меню</button>
+  </div>
+</div>
+<div class="overlay" id="over" hidden>
+  <div class="sheet">
+    <h2 id="oTitle">Замок пал</h2>
+    <div class="kpis">
+      <div class="kpi"><small>Волна</small><b id="oWave">0</b></div>
+      <div class="kpi"><small>Точность</small><b id="oAcc">0%</b></div>
+      <div class="kpi"><small>Кристаллы</small><b><span class="gem"></span><span id="oGems">0</span></b></div>
+    </div>
+    <p class="hint" id="oMissHead"></p>
+    <div class="missed" id="oMissed"></div>
+    <div class="row"><button class="btn" id="oMenu">Меню</button><button class="btn primary" id="oAgain">Ещё раз</button></div>
+  </div>
+</div>
+
+<!-- ============ GALLERY ============ -->
+<div class="overlay" id="gallery" hidden>
+  <div class="sheet" style="margin-top:0">
+    <div class="topbar"><h2>Картинки</h2><button class="iconbtn" id="galBack">Меню</button></div>
+    <div class="seg" role="radiogroup" aria-label="Режим урока"><button id="mHard" role="radio">Вспоминаю сам</button><button id="mEasy" role="radio">Знакомство</button></div>
+    <p class="hint" id="modeHint"></p>
+    <div class="gal" id="gal"></div>
+    <h2 style="font-size:18px;margin-top:6px">Фразы для любой картинки</h2>
+    <div class="phr" id="phr"></div>
+  </div>
+</div>
+
+<!-- ============ LESSON ============ -->
+<div class="overlay" id="lesson" hidden style="padding:0;background:var(--ground)">
+  <div class="screen" style="width:100%">
+    <div class="topbar"><button class="iconbtn" id="lesBack" aria-label="Назад">←</button><div style="flex:1;min-width:0"><div class="label" id="lesTitleRu"></div><div style="font-family:var(--f-display);font-weight:700;font-size:16px" id="lesTitle"></div></div><span class="combo" id="lesCount"></span></div>
+    <div class="prog"><i id="lesProg"></i></div>
+    <button class="photo" id="lesPhoto" aria-label="Увеличить картинку"><img id="lesImg" alt=""><span class="zoom">Увеличить</span></button>
+    <div class="lessonbody" id="lesBody"></div>
+  </div>
+</div>
+<div id="zoom" hidden><img id="zoomImg" alt=""></div>
+
+<script>
+/* ================= DATA ================= */
+const MINE_RAW=`deier|дорогой
+Aarbecht|работа
+Busarrêt|автобусная остановка
+Da|тогда
+Dier|дверь
+Doheem|дома
+Déier|животное / животные
+Fliger|самолёт
+Fluchhafen|аэропорт
+Meeschtens|чаще всего
+Méint|месяцы
+Tankstell|заправка
+Verkéier|движение / трафик
+akafen|закупаться, делать покупки
+ausprobéieren|пробовать (новое)
+ausrouen|отдохнуть, набраться сил
+bastelen|мастерить
+bedeiten|означать
+behalen|запоминать
+beim|у / около (с артиклем)
+bekennen|признавать
+benotzen|пользоваться
+beréieren|трогать
+besichen|посещать
+bestellen|заказывать
+bestueden|жениться
+beweegen|двигать
+bewonneren|восхищаться
+bezuelen|платить
+bleiwen|оставаться
+bléien|цвести
+blëtzen|сверкать (о молнии)
+botzen|чистить
+brauchen|нуждаться
+bréngen|приносить
+buchen|бронировать
+bëssen|немного (e bëssen)
+d'Ausland|заграница
+d'Leit|люди
+d'lescht|последний
+dacks|часто
+danzen|танцевать
+daueren|длиться
+decidéieren|решать (принимать решение)
+deelen|делить
+denken|думать
+doen|делать / класть
+donneren|греметь (о громе)
+droen|носить / нести
+drécken|нажимать
+drénken|пить
+duschen|принимать душ
+entspanen|расслабляться
+erhuelen|восстанавливаться
+erklären|объяснять
+erzielen|рассказывать
+erënneren|вспоминать
+falen|падать
+fannen|находить
+feelen|отсутствовать, не хватать
+feieren|праздновать
+fidderen|кормить
+fillen|чувствовать
+flécken|чинить, латать
+fléien|летать
+fotograféieren|фотографировать
+freeën|радоваться
+friessen|есть (о животном)
+froen|спрашивать
+fueren|ездить
+funktionéieren|функционировать
+fänken|ловить
+fëmmen|курить
+gebrauchen|использовать
+gefalen|нравиться
+gehéieren|принадлежать
+genéissen|наслаждаться
+gesinn|видеть
+ginn|давать / становиться
+gleewen|верить
+goen|идти
+gratis|бесплатно
+grillen|жарить на гриле
+gréissen|здороваться
+gëschter|вчера
+halen|держать
+heemkommen|приходить домой
+heeschen|называться
+heiansdo|иногда
+hoffen|надеяться
+huelen|брать
+hunn|иметь
+hänken|вешать / висеть
+héieren|слышать
+hëllefen|помогать
+iessen|есть
+informéieren|информировать
+interesséieren|интересовать
+invitéieren|приглашать
+jiddereen|каждый, все
+kachen|готовить (еду)
+kafen|покупать
+kaschten|стоить
+kennen|знать (быть знакомым)
+klappen|стучать / получаться
+kommen|приходить
+kommunizéieren|общаться
+kréien|получать
+kucken|смотреть
+këmmeren|заботиться
+kënnen|мочь, уметь
+laachen|смеяться
+laang|долго
+lafen|бегать
+lauschteren|слушать
+leeën|класть
+leien|лежать
+liesen|читать
+liewen|жить (существовать)
+lounen|снимать (в аренду)
+léieren|учить / преподавать
+léinen|одалживать
+léisen|решать (задачу)
+maachen|делать
+mailen|писать по почте
+mathuelen|брать с собой
+matmaachen|участвовать
+mengen|считать, полагать
+molen|рисовать
+mussen|быть должным
+nodenken|размышлять
+notéieren|записывать
+nächst|следующий
+ongeféier|примерно
+oppassen|быть осторожным
+opraumen|прибираться
+organiséieren|организовывать
+packen|упаковывать / справляться
+parken|парковать
+passen|подходить
+passéieren|случаться
+plangen|планировать
+plënneren|переезжать
+praktesch|удобный, практичный
+probéieren|пробовать
+raschten|отдыхать (делать паузу)
+raumen|убирать
+recommandéieren|рекомендовать
+reechen|хватать (быть достаточным)
+reenen|идти (о дожде)
+reesen|путешествовать
+reservéieren|резервировать
+roden|угадывать / советовать
+ruffen|звать
+sammelen|собирать
+sangen|петь
+schaffen|работать
+schellen|звонить (в дверь)
+schenken|дарить
+schlofen|спать
+schlëmm|плохо, скверно
+schmaachen|быть вкусным
+schneien|идти (о снеге)
+schreiwen|писать
+schwammen|плавать
+schwätzen|говорить, болтать
+schécken|отправлять
+schéngen|светить / казаться
+setzen|сажать, усаживать
+shoppen|ходить по магазинам
+sichen|искать
+sinn|быть
+soen|сказать
+sollen|следует, должен
+spadséieren|гулять
+spillen|играть
+spueren|экономить
+spullen|мыть посуду
+staubsaugen|пылесосить
+stauen|стоять в пробке
+stellen|ставить
+stoen|стоять
+strecken|гладить (бельё)
+studéieren|учиться в вузе
+stéieren|мешать
+sëtzen|сидеть
+tanken|заправляться
+telefonéieren|звонить по телефону
+trainéieren|тренироваться
+treffen|встречать
+ufänken|начинать
+ukucken|рассматривать
+umellen|регистрировать
+undoen|надевать (вещь)
+unzéien|одеваться
+verbréngen|проводить (время)
+verdéngen|зарабатывать
+vergiessen|забывать
+verloossen|покидать
+vermëssen|скучать
+verstoen|понимать
+vertrauen|доверять
+virbereeden|подготавливать
+virliesen|читать вслух
+virstellen|представлять
+viru|тому назад
+waarden|ждать
+wanderen|ходить в походы
+weiderbilden|повышать квалификацию
+weisen|показывать
+widderhuelen|повторять
+wielen|выбирать
+wiesselen|менять, сменять
+wunnen|жить (проживать)
+wëllen|хотеть
+wënschen|желать
+wëssen|знать (факт)
+zortéieren|сортировать
+zéien|тянуть
+änneren|изменять
+ëffentlech|общественный
+ëmtauschen|обменивать
+üben|упражняться
+d'Noriichten|новости
+wichteg|важный
+menger|моей / моему
+meeschten|больше всего
+Spaass|удовольствие, веселье`;
+const PICS=[
+{id:"01_family",lb:"Owesiessen",ru:"Праздничный ужин",
+ w:["den Dësch|стол","den Teller|тарелка","d'Käerz|свеча","d'Serviett|салфетка","de Fësch|рыба","d'Zalot|салат","d'Owesiessen|ужин","rout|красный"],
+ s:["Op der Foto gesäit een e gedeckten [Dësch].|На фото виден накрытый стол.","Um Dësch stinn zwou rout [Käerzen].|На столе стоят две красные свечи.","Op den Telleren ass Fësch mat [Zalot].|На тарелках рыба с салатом."]},
+{id:"02_market",lb:"Maart",ru:"Рынок",
+ w:["de Maart|рынок","d'Gromperen|картофель","d'Këscht|ящик","d'Geméis|овощи","d'Täsch|сумка","d'Camionnette|фургон","d'Hiem|рубашка","frësch|свежий"],
+ s:["Op der Foto gesäit een e [Maart].|На фото виден рынок.","Am Virdergrond sinn Këschte mat [Gromperen].|На переднем плане ящики с картофелем.","E Mann an engem bloen [Hiem] keeft Geméis.|Мужчина в синей рубашке покупает овощи."]},
+{id:"03_train",lb:"Gare",ru:"Вокзал",
+ w:["d'Gare|вокзал, станция","de Quai|платформа","den Zuch|поезд","naass|мокрый","gro|серый","d'Gebai|здание","de Bam|дерево","d'Schinnen|рельсы"],
+ s:["Op der Foto gesäit een eng [Gare].|На фото видна станция.","Riets steet en [Zuch] op de Schinnen.|Справа на рельсах стоит поезд.","De Quai ass [naass], den Himmel ass gro.|Платформа мокрая, небо серое."]},
+{id:"04_doctor",lb:"Beim Dokter",ru:"У врача",
+ w:["den Dokter|врач","d'Patientin|пациентка","d'Infirmière|медсестра","de Cabinet|кабинет","d'Brëll|очки","de Kittel|халат","den Dësch|стол","d'Fënster|окно"],
+ s:["Op der Foto gesäit een en [Dokter] an eng Patientin.|На фото врач и пациентка.","Den Dokter dréit e wäisse [Kittel].|Врач в белом халате.","D'Patientin huet eng [Brëll]. Hannen steet eng Infirmière.|У пациентки очки. Сзади стоит медсестра."]},
+{id:"05_beach",lb:"Plage",ru:"Пляж",
+ w:["d'Plage|пляж","d'Mier|море","de Sand|песок","d'Fra|женщина","de Vugel|птица","d'Sonnebrëll|солнечные очки","blo|синий","sonneg|солнечный"],
+ s:["Eng Fra sëtzt um [Sand] op der Plage.|Женщина сидит на песке на пляже.","Si huet eng [Sonnebrëll] an e bloen T-Shirt.|На ней солнечные очки и синяя футболка.","An den Hänn hält si kleng [Vullen]. Et ass sonneg.|В руках она держит маленьких птиц. Солнечно."]},
+{id:"06_park",lb:"Park um Mier",ru:"Парк у моря",
+ w:["de Park|парк","de Bam|дерево","d'Gras|трава","de Picknickdësch|стол для пикника","d'Mier|море","de Sand|песок","d'Blumm|цветок","d'Bild|картина"],
+ s:["Dëst Bild weist e [Park] um Mier.|Эта картина показывает парк у моря.","Am Virdergrond si gréngt Gras a giel [Blummen].|На переднем плане зелёная трава и жёлтые цветы.","Riets sëtzt e Meedchen um [Picknickdësch].|Справа у стола для пикника сидит девочка."]},
+{id:"07_classroom",lb:"Klass",ru:"Класс",
+ w:["d'Klass|класс","d'Leit|люди","de Stull|стул","d'Zeechnung|рисунок","d'Hoer|волосы","d'Hiem|рубашка","d'Tafel|доска","de Réck|спина"],
+ s:["Dat hei ass eng [Zeechnung] vun enger Klass.|Это рисунок класса.","Sechs Leit sëtzen op [Still].|Шесть человек сидят на стульях.","Mir gesinn se vun hannen. Virun hinnen ass eng [Tafel].|Мы видим их сзади. Перед ними доска."]},
+{id:"08_cooking",lb:"Gaart an der Stad",ru:"Сад в городе",
+ w:["de Gaart|сад","d'Gras|трава","de Picknickdësch|стол для пикника","de Bam|дерево","d'Gebai|здание","d'Faarf|краска","d'Zelt|палатка","d'Stad|город"],
+ s:["Op der Foto gesäit een e [Gaart] an der Stad.|На фото сад в городе.","Op de Picknickdëscher stinn [Faarwen].|На столах для пикника стоят краски.","Am Hannergrond si wäiss [Zelter] a grouss Gebaier.|На заднем плане белые палатки и большие здания."]},
+{id:"09_city",lb:"Wantermaart",ru:"Зимний рынок",
+ w:["de Maart|рынок","d'Strooss|улица","de Stand|прилавок","d'Leit|люди","de Mantel|пальто","d'Liicht|свет","d'Uebst|фрукты","de Wanter|зима"],
+ s:["Op der Foto gesäit een e Wantermaart an der [Strooss].|На фото зимний рынок на улице.","Vill Leit droe waarm [Mäntel].|Многие люди в тёплых пальто.","Riets ass e [Stand] mat Uebst.|Справа прилавок с фруктами."]},
+{id:"10_mountain",lb:"Bësch",ru:"Лес на закате",
+ w:["de Bësch|лес","de Bam|дерево","de Fiels|скала","de Sonnenënnergang|закат","den Himmel|небо","d'Wollek|облако","d'Sonn|солнце","d'Aussiicht|вид"],
+ s:["Op der Foto gesäit een e grousse [Bësch].|На фото большой лес.","Am Virdergrond ass e [Fiels].|На переднем плане скала.","Um Himmel si [Wolleken], d'Sonn geet ënner.|На небе облака, солнце садится."]},
+{id:"11_office",lb:"Büro",ru:"Старый офис",
+ w:["de Büro|офис","d'Fraen|женщины","de Stull|стул","de Schreifdësch|письменный стол","d'Schreifmaschinn|печатная машинка","d'Tastatur|клавиатура","d'Aarbecht|работа","al|старый"],
+ s:["Dat ass eng al Foto vun engem [Büro].|Это старое фото офиса.","Zwou Frae schaffen op [Schreifmaschinnen].|Две женщины работают на печатных машинках.","Vir sëtzt eng jonk Fra op engem [Stull].|Впереди на стуле сидит молодая женщина."]},
+{id:"12_children",lb:"Plage fréier",ru:"Пляж в старину",
+ w:["d'Plage|пляж","d'Waasser|вода","d'Mier|море","d'Leit|люди","schwammen|плавать","den Hiwwel|холм","d'Beem|деревья","de Summer|лето"],
+ s:["Dat ass eng al Foto vun enger [Plage].|Это старое фото пляжа.","Vill Leit a Kanner sinn am [Waasser].|Много людей и детей в воде.","Am Hannergrond ass en [Hiwwel] mat Beem.|На заднем плане холм с деревьями."]},
+{id:"13_supermarket",lb:"Supermarché",ru:"Супермаркет",
+ w:["de Buttek|магазин","de Supermarché|супермаркет","d'Akafsween|тележки","de Kuerf|корзина","d'Fraen|женщины","den Handy|мобильный телефон","d'Schëlter|вывески","d'Liicht|свет"],
+ s:["Op der Foto gesäit een e [Supermarché].|На фото супермаркет.","Riets stinn vill [Akafsween], lénks si blo Kierf.|Справа много тележек, слева синие корзины.","Zwou Frae kucken op en [Handy].|Две женщины смотрят в телефон."]},
+{id:"14_playground",lb:"Spillplaz",ru:"Детская площадка",
+ w:["d'Spillplaz|детская площадка","d'Rutschbunn|горка","d'Kanner|дети","d'Uniform|форма","den Tuerm|башня","d'Gras|трава","d'Spill|игра","d'Léierin|учительница"],
+ s:["Op der Foto gesäit een eng [Spillplaz].|На фото детская площадка.","D'Kanner spillen op de [Rutschbunnen].|Дети играют на горках.","Riets steet eng [Léierin] a kuckt no de Kanner.|Справа стоит учительница и присматривает за детьми."]},
+{id:"15_gym",lb:"Musée",ru:"Скелет в музее",
+ w:["de Skelett|скелет","de Fitnessapparat|тренажёр","de Sport|спорт","de Musée|музей","d'Schanken|кости","den Affiche|плакат","d'Übung|упражнение","d'Leit|люди"],
+ s:["D'Foto ass an engem [Musée] gemaach.|Фото сделано в музее.","E [Skelett] steet op engem Fitnessapparat.|Скелет стоит на тренажёре.","Riets kucken eng Mamm an e Kand op en [Affiche].|Справа мама и ребёнок смотрят на плакат."]},
+{id:"16_airport",lb:"Fluchhafen",ru:"Аэропорт",
+ w:["de Fluchhafen|аэропорт","d'Fligeren|самолёты","d'Gebaier|здания","d'Autoen|машины","de Parking|парковка","d'Beem|деревья","den Daach|крыша","den Himmel|небо"],
+ s:["Dat ass eng Foto vun uewen: e klenge [Fluchhafen].|Это фото сверху: маленький аэропорт.","Am Virdergrond stinn e puer [Fligeren].|На переднем плане стоят несколько самолётов.","Hannert de Gebaier ass e grousse [Parking].|За зданиями большая парковка."]},
+{id:"17_garden",lb:"Gaart am Fréijoer",ru:"Весенний сад",
+ w:["de Gaart|сад","d'Tulpen|тюльпаны","d'Blummen|цветы","d'Haus|дом","d'Sailen|колонны","d'Hecken|кусты","d'Beem|деревья","de Fréijoer|весна"],
+ s:["Op der Foto gesäit een e wäisst [Haus] mat Sailen.|На фото белый дом с колоннами.","Am Virdergrond bléie vill faarweg [Tulpen].|На переднем плане цветут разноцветные тюльпаны.","D'Beem bléie wäiss. Et ass [Fréijoer].|Деревья цветут белым. Весна."]},
+{id:"18_museum",lb:"Kamee",ru:"Камея",
+ w:["d'Kamee|камея","de Steen|камень","d'Schnëtzerei|резьба","de Vugel|птица","den Adler|орёл","d'Flilleken|крылья","de Musée|музей","antik|старинный"],
+ s:["Op der Foto gesäit een eng antik Kamee aus [Steen].|На фото старинная камея из камня.","Lénks sëtzt e Mann op engem [Stull].|Слева на стуле сидит мужчина.","Riets ass en [Adler] mat grousse Flilleken.|Справа орёл с большими крыльями."]},
+{id:"19_cafe",lb:"Kuch am Café",ru:"Торт в кафе",
+ w:["de Kuch|торт, пирог","de Schockela|шоколад","de Schlagrumm|взбитые сливки","d'Äerdbier|клубника","den Teller|тарелка","d'Glas|стакан","den Dessert|десерт","de Café|кафе"],
+ s:["Op der Foto gesäit een e Stéck [Schockelaskuch].|На фото кусок шоколадного торта.","Dobäi si Schlagrumm an eng [Äerdbier].|К нему взбитые сливки и клубника.","Hannen steet e [Glas] Waasser.|Сзади стоит стакан воды."]},
+{id:"20_winter",lb:"Wanternuecht",ru:"Зимняя ночь",
+ w:["de Wanter|зима","de Schnéi|снег","d'Nuecht|ночь","d'Gebai|здание","d'Glas|стекло","d'Liicht|свет","d'Luuchten|фонари","den Dännebam|ёлка"],
+ s:["Et ass [Nuecht] an et läit Schnéi.|Ночь, лежит снег.","Riets ass e modernt Gebai aus [Glas].|Справа современное здание из стекла.","D'[Luuchten] an d'Fënstere maache Liicht.|Фонари и окна дают свет."]},
+{id:"21_bus",lb:"Busarrêt",ru:"Автобусная остановка",
+ w:["de Busarrêt|автобусная остановка","de Bus|автобус","d'Bänk|скамейка","d'Fra|женщина","de Mantel|пальто","de Fuerplang|расписание","d'Strooss|улица","den Hierscht|осень"],
+ s:["Op der Foto gesäit een e [Busarrêt].|На фото автобусная остановка.","Eng Fra sëtzt op der [Bänk] a waart.|Женщина сидит на скамейке и ждёт.","Op der Strooss kënnt e Bus. Et ass [Hierscht].|По улице едет автобус. Осень."]},
+{id:"22_living",lb:"Heembüro",ru:"Домашний офис",
+ w:["den Dësch|стол","de Computer|компьютер","de Laptop|ноутбук","d'Zëmmer|комната","d'Plättercher|плитка","d'Fënster|окно","d'Tirangen|ящики","de Büro|офис"],
+ s:["Op der Foto gesäit een e klengen [Heembüro].|На фото маленький домашний офис.","Um Dësch stinn e Computer an e [Laptop].|На столе стоят компьютер и ноутбук.","Um Buedem sinn orange [Plättercher].|На полу оранжевая плитка."]},
+{id:"23_laundry",lb:"Wäsch",ru:"Бельё на верёвке",
+ w:["d'Hiemer|рубашки","d'Kleeder|одежда","d'Seel|верёвка","d'Klameren|прищепки","blo|синий","rout|красный","d'Fënster|окно","de Buttek|магазин"],
+ s:["Virun enger Fënster hänke [Kleeder] op enger Seel.|Перед окном на верёвке висит одежда.","Et gëtt blo, wäiss, [rout] a gesträifte T-Shirten.|Есть синие, белые, красные и полосатые футболки.","D'Kleeder si mat [Klameren] festgemaach.|Одежда закреплена прищепками."]},
+{id:"24_football",lb:"Fussball",ru:"Футбол",
+ w:["de Fussball|футбол","d'Fraen|женщины","de Ball|мяч","d'Gras|трава","rout|красный","wäiss|белый","lafen|бегать","de Sport|спорт"],
+ s:["Zwou Frae spillen [Fussball] an engem Stadion.|Две женщины играют в футбол на стадионе.","Eng Spillerin dréit rout, déi aner [wäiss].|Одна игрок в красном, другая в белом.","Si lafen nom [Ball].|Они бегут за мячом."]},
+{id:"25_wedding",lb:"Hochzäitsfoto",ru:"Старое свадебное фото",
+ w:["d'Koppel|пара","d'Foto|фото","de Kostüm|костюм","d'Kleed|платье","de Kader|рамка","de Mann|мужчина","d'Fra|женщина","eescht|серьёзный"],
+ s:["Op der Foto gesäit een eng al Hochzäitsfoto an engem [Kader].|На фото старая свадебная фотография в рамке.","De Mann sëtzt an dréit e [Kostüm].|Мужчина сидит, он в костюме.","D'Fra huet e wäisst [Kleed] un. Béid kucken eescht.|На женщине белое платье. Оба выглядят серьёзно."]},
+{id:"26_library",lb:"Bibliothéik",ru:"Библиотека",
+ w:["d'Bibliothéik|библиотека","d'Bicher|книги","d'Regaler|полки","d'Glas|стекло","den Daach|крыша","de Buedem|пол","roueg|тихий","liesen|читать"],
+ s:["Op der Foto gesäit een eng grouss [Bibliothéik].|На фото большая библиотека.","Lénks a riets stinn Regaler mat vill [Bicher].|Слева и справа стоят полки с книгами.","Den [Daach] ass aus Glas.|Крыша из стекла."]},
+{id:"27_construction",lb:"Bauplaz",ru:"Стройка",
+ w:["d'Bauplaz|стройка","den Aarbechter|рабочий","den Helm|каска","de Gilet|жилет","d'Schëpp|лопата","d'Zillen|кирпичи","d'Äerd|земля","schaffen|работать"],
+ s:["Op der Foto gesäit een eng [Bauplaz].|На фото стройка.","En Aarbechter schafft mat enger [Schëpp].|Рабочий работает лопатой.","Hien dréit en [Helm] an e gielle Gilet.|На нём каска и жёлтый жилет."]},
+{id:"28_hairdresser",lb:"Geschäftsstrooss",ru:"Улица с магазинами",
+ w:["d'Strooss|улица","d'Geschäfter|магазины","de Coiffeur|парикмахерская","d'Blummen|цветы","d'Planzen|растения","d'Haiser|дома","den Himmel|небо","d'Stad|город"],
+ s:["Op der Foto gesäit een eng Strooss mat [Geschäfter].|На фото улица с магазинами.","Lénks sinn e Blummebuttek an e [Coiffeur].|Слева цветочный магазин и парикмахерская.","Virum Buttek si vill [Planzen].|Перед магазином много растений."]},
+{id:"29_restaurant",lb:"Restaurant",ru:"Ресторан вечером",
+ w:["de Restaurant|ресторан","d'Bar|бар","den Dësch|стол","d'Glieser|бокалы","d'Fläsch|бутылка","d'Liicht|свет","d'Still|стулья","den Owend|вечер"],
+ s:["Op der Foto gesäit een e Restaurant um [Owend].|На фото ресторан вечером.","Op engem Dësch stinn [Glieser] an eng Fläsch.|На столе стоят бокалы и бутылка.","Am Hannergrond ass eng [Bar].|На заднем плане бар."]},
+{id:"30_swimming",lb:"Schwämm",ru:"Бассейн в старину",
+ w:["d'Schwämm|бассейн","d'Waasser|вода","d'Leit|люди","schwammen|плавать","schwaarz-wäiss|чёрно-белый","d'Gebai|здание","d'Beem|деревья","de Summer|лето"],
+ s:["Dat ass eng al Foto vun enger [Schwämm].|Это старое фото бассейна.","E puer Leit schwammen am [Waasser].|Несколько человек плавают в воде.","Am Hannergrond sinn e [Gebai] a Beem.|На заднем плане здание и деревья."]}
+];
+const GROUPS={
+move:["goen","kommen","fueren","lafen","fléien","schwammen","spadséieren","wanderen","reesen","heemkommen","plënneren","falen","beweegen","danzen","trainéieren","bleiwen","verloossen","stoen","sëtzen","leien","stauen","parken","tanken"],
+talk:["schwätzen","soen","froen","erklären","erzielen","ruffen","schellen","telefonéieren","mailen","schreiwen","kommunizéieren","gréissen","informéieren","virliesen","notéieren","invitéieren","recommandéieren","weisen","virstellen","bekennen","laachen","sangen"],
+mind:["denken","mengen","gleewen","wëssen","kennen","verstoen","behalen","vergiessen","erënneren","nodenken","decidéieren","léisen","hoffen","wënschen","wëllen","wielen","roden","bedeiten","plangen"],
+feel:["fillen","interesséieren","freeën","bewonneren","vermëssen","vertrauen","gefalen","genéissen","stéieren","këmmeren","oppassen","hëllefen"],
+learn:["léieren","studéieren","üben","widderhuelen","weiderbilden","liesen","molen","virbereeden","organiséieren","umellen","ufänken","probéieren","ausprobéieren","matmaachen"],
+sense:["gesinn","kucken","ukucken","héieren","lauschteren","beréieren","fotograféieren","fannen","sichen"],
+house:["botzen","raumen","opraumen","spullen","staubsaugen","strecken","zortéieren","flécken","bastelen","hänken","leeën","stellen","setzen","duschen","undoen","unzéien","doen","packen","droen"],
+food_v:["iessen","drénken","schmaachen","friessen","fidderen","kachen","grillen","fëmmen"],
+money:["kafen","akafen","bezuelen","kaschten","spueren","verdéngen","bestellen","buchen","reservéieren","lounen","léinen","ëmtauschen","wiesselen","änneren","shoppen"],
+give:["schenken","kréien","ginn","huelen","bréngen","mathuelen","schécken","deelen","sammelen","halen","drécken","zéien","fänken","klappen"],
+rest:["ausrouen","raschten","entspanen","erhuelen","schlofen","feieren","spillen","besichen","treffen","verbréngen","waarden"],
+core:["sinn","hunn","kënnen","mussen","sollen","maachen","brauchen","gebrauchen","benotzen","funktionéieren","passen","passéieren","daueren","reechen","feelen","gehéieren","heeschen","liewen","wunnen","schaffen","bestueden"],
+weather_v:["reenen","schneien","donneren","blëtzen","schéngen","bléien"],
+time:["dacks","heiansdo","Meeschtens","laang","gëschter","haut","muer","viru","Da","ongeféier","bëssen","meeschten","d'lescht","nächst","Doheem","beim","menger","jiddereen"],
+adj:["deier","bëlleg","gratis","praktesch","schlëmm","wichteg","ëffentlech","kal","waarm","grouss","kleng","schéin","gutt","schlecht","séier","lues","nei","midd","frou","naass","frësch","sonneg","al","antik","roueg","eescht"],
+color:["rout","blo","wäiss","gréng","giel","schwaarz","schwaarz-wäiss","gro"],
+transport:["Busarrêt","Fliger","Fluchhafen","Tankstell","Verkéier","d'Ausland","Auto","Zuch","Vëlo","d'Gare","de Quai","den Zuch","d'Schinnen","de Bus","de Busarrêt","de Fuerplang","d'Fligeren","de Fluchhafen","de Parking","d'Autoen","d'Camionnette","d'Akafsween","Strooss","d'Strooss"],
+city:["Haus","Wunneng","Buttek","Apdikt","Spidol","Schoul","Kierch","Gemeng","Bréck","Duerf","Land","d'Gebai","d'Gebaier","d'Stad","de Maart","de Stand","de Buttek","de Supermarché","d'Geschäfter","de Coiffeur","d'Haiser","d'Haus","de Restaurant","d'Bar","de Café","d'Bibliothéik","de Musée","d'Spillplaz","d'Bauplaz","d'Schwämm","de Büro","de Cabinet","d'Klass","de Park","de Gaart","den Daach","d'Zelt","d'Sailen"],
+home:["Dier","Kichen","Schlofzëmmer","Bett","den Dësch","de Stull","d'Still","d'Fënster","d'Zëmmer","d'Plättercher","d'Tirangen","de Buedem","de Schreifdësch","d'Regaler","d'Bänk","de Picknickdësch","de Kader","d'Tafel"],
+things:["d'Käerz","d'Serviett","den Teller","d'Glas","d'Glieser","d'Fläsch","d'Täsch","d'Këscht","de Kuerf","d'Seel","d'Klameren","d'Luuchten","d'Liicht","d'Schëpp","d'Kamee","d'Schnëtzerei","de Ball","d'Rutschbunn","den Tuerm"],
+media:["de Computer","de Laptop","d'Tastatur","d'Schreifmaschinn","den Handy","d'Schëlter","den Affiche","de Fitnessapparat","Bréif","d'Noriichten","d'Foto","d'Bild","d'Zeechnung","d'Bicher","d'Faarf","Rechnung","Präis","Geld"],
+food:["Waasser","Brout","Kéis","Fleesch","Mëllech","Kaffi","Téi","Gromperen","Äppel","Zopp","Mëttegiessen","de Fësch","d'Zalot","d'Owesiessen","d'Gromperen","d'Geméis","d'Uebst","de Kuch","de Schockela","de Schlagrumm","d'Äerdbier","den Dessert","d'Waasser"],
+nature:["Wieder","Reen","Wand","de Bam","d'Beem","de Bësch","de Fiels","den Himmel","d'Wollek","d'Sonn","de Sonnenënnergang","d'Aussiicht","d'Mier","de Sand","d'Plage","d'Gras","d'Blumm","d'Blummen","d'Tulpen","d'Hecken","d'Planzen","den Hiwwel","Floss","Bierg","de Schnéi","d'Äerd","de Steen","d'Zillen","den Dännebam"],
+animal:["Déier","Hond","Kaz","de Vugel","den Adler","d'Flilleken","de Skelett","d'Schanken"],
+season:["de Wanter","de Summer","de Fréijoer","den Hierscht","d'Nuecht","den Owend","Dag","Mueren","Woch","Mount","Joer","Stonn","Méint","Méindeg","Dënschdeg","Mëttwoch","Donneschdeg","Freideg","Samschdeg","Sonndeg"],
+people:["d'Leit","d'Fra","d'Fraen","de Mann","d'Kanner","Kand","den Dokter","d'Patientin","d'Infirmière","d'Léierin","den Aarbechter","d'Koppel","Papp","Mamm","Brudder","Schwëster","Bopa","Boma","Frënd","Noper"],
+wear:["d'Hiem","d'Hiemer","d'Kleeder","de Mantel","de Kittel","d'Brëll","d'Sonnebrëll","de Kostüm","d'Kleed","d'Uniform","den Helm","de Gilet","Schong","Kleeder","d'Hoer","de Réck","Kapp","Hand","Fouss","Aen","Häerz"],
+activity:["Aarbecht","d'Aarbecht","Spaass","de Sport","de Fussball","d'Spill","d'Übung","Vakanz","Gebuertsdag"],
+greet:["Moien","Äddi","Merci","Wann ech gelift","Pardon"],
+question:["Wat?","Wien?","Wou?","Wéini?","Firwat?","Wéi vill?"],
+number:["eent","zwee","dräi","véier","fënnef","sechs","siwen","aacht","néng","zéng"]
+};
+const PHRASES=[["Op der Foto gesäit een…","на фото видно…"],["Ech gesinn…","я вижу…"],["Am Virdergrond","на переднем плане"],["Am Hannergrond","на заднем плане"],["An der Mëtt","в центре"],["Lénks","слева"],["Riets","справа"],["Uewen","наверху"],["Ënnen","внизу"],["Ech mengen, datt…","я думаю, что…"],["Et gesäit aus, wéi wann…","похоже, что…"],["Vill Leit","много людей"],["E puer","несколько"],["Et ass Wanter.","сейчас зима."]];
+const LB_RAW=`Moien|привет|g
+Äddi|пока|g
+Merci|спасибо|g
+Wann ech gelift|пожалуйста|g
+Pardon|извините|g
+Haus|дом|n
+Wunneng|квартира|n
+Kichen|кухня|n
+Schlofzëmmer|спальня|n
+Bett|кровать|n
+Auto|машина|n
+Zuch|поезд|n
+Vëlo|велосипед|n
+Strooss|улица|n
+Buttek|магазин|n
+Apdikt|аптека|n
+Spidol|больница|n
+Schoul|школа|n
+Bréif|письмо|n
+Waasser|вода|n
+Brout|хлеб|n
+Kéis|сыр|n
+Fleesch|мясо|n
+Mëllech|молоко|n
+Kaffi|кофе|n
+Téi|чай|n
+Gromperen|картофель|n
+Äppel|яблоко|n
+Zopp|суп|n
+Mëttegiessen|обед|n
+Geld|деньги|n
+Rechnung|счёт|n
+Präis|цена|n
+Hond|собака|n
+Kaz|кошка|n
+Floss|река|n
+Bierg|гора|n
+Duerf|деревня|n
+Land|страна|n
+Bréck|мост|n
+Kierch|церковь|n
+Gemeng|коммуна|n
+Wieder|погода|n
+Reen|дождь|n
+Wand|ветер|n
+Kleeder|одежда|n
+Schong|обувь|n
+Vakanz|отпуск|n
+Gebuertsdag|день рождения|n
+Kand|ребёнок|f
+Papp|папа|f
+Mamm|мама|f
+Brudder|брат|f
+Schwëster|сестра|f
+Bopa|дедушка|f
+Boma|бабушка|f
+Frënd|друг|f
+Noper|сосед|f
+Kapp|голова|b
+Hand|рука|b
+Fouss|нога|b
+Aen|глаза|b
+Häerz|сердце|b
+Dag|день|d
+Mueren|утро|d
+haut|сегодня|d
+muer|завтра|d
+Woch|неделя|d
+Mount|месяц|d
+Joer|год|d
+Stonn|час|d
+Méindeg|понедельник|d
+Dënschdeg|вторник|d
+Mëttwoch|среда|d
+Donneschdeg|четверг|d
+Freideg|пятница|d
+Samschdeg|суббота|d
+Sonndeg|воскресенье|d
+kal|холодный|a
+waarm|тёплый|a
+grouss|большой|a
+kleng|маленький|a
+schéin|красивый|a
+gutt|хороший|a
+schlecht|плохой|a
+séier|быстрый|a
+lues|медленный|a
+nei|новый|a
+bëlleg|дешёвый|a
+midd|уставший|a
+frou|довольный|a
+gréng|зелёный|c
+giel|жёлтый|c
+schwaarz|чёрный|c
+Wat?|что?|q
+Wien?|кто?|q
+Wou?|где?|q
+Wéini?|когда?|q
+Firwat?|почему?|q
+Wéi vill?|сколько?|q
+eent|один|x
+zwee|два|x
+dräi|три|x
+véier|четыре|x
+fënnef|пять|x
+sechs|шесть|x
+siwen|семь|x
+aacht|восемь|x
+néng|девять|x
+zéng|десять|x`;
+
+const ADJ=new Set(['deier','bëssen','dacks','gratis','gëschter','heiansdo','laang','nächst','ongeféier','praktesch','schlëmm','viru','wichteg','menger','meeschten','jiddereen','ëffentlech','beim','Da','Meeschtens',"d'lescht",'Doheem']);
+function catOf(w){
+  if(ADJ.has(w)) return 'a';
+  if(/^d'/.test(w)||/^[A-ZÄÉË]/.test(w)) return 'n';
+  if(/(en|ën|éien|eeën|inn|unn|oen|ginn|sinn|hunn|doen|goen)$/.test(w)) return 'v';
+  return 'a';
+}
+const MINE=MINE_RAW.split('\n').filter(Boolean).map(l=>{const [w,t]=l.split('|');return {w,t,c:catOf(w)};});
+const LB=LB_RAW.split('\n').map(l=>{const [w,t,c]=l.split('|');return {w,t,c};});
+const PICW=(()=>{const m=new Map();PICS.forEach(p=>p.w.forEach(x=>{const [w,t]=x.split('|');if(!m.has(w))m.set(w,{w,t,c:/^(d'|de |den )/.test(w)?'n':'a'});}));PHRASES.forEach(([w,t])=>m.set(w,{w,t,c:'p'}));return [...m.values()];})();
+function uniq(arr){const m=new Map();arr.forEach(x=>{if(!m.has(x.w))m.set(x.w,x);});return [...m.values()];}
+const MINEPLUS=uniq([...MINE,...PICW]);
+const ALLW=uniq([...MINE,...PICW,...LB]);
+const GRP=new Map();Object.entries(GROUPS).forEach(([g,ws])=>ws.forEach(w=>GRP.set(w,g)));
+const grpOf=w=>GRP.get(w.w)||(w.c==='p'?'phrase':null);
+
+/* ================= STORAGE ================= */
+const SKEY='wuertbuerg.v2';
+let store={deck:'mine',custom:'',prog:{},best:0,gems:0,up:{bank:0,walls:0,dmg:0,luck:0},pics:{}};
+try{const s=JSON.parse(localStorage.getItem(SKEY)||'null');if(s){store=Object.assign(store,s);store.up=Object.assign({bank:0,walls:0,dmg:0,luck:0},s.up||{});}}catch(e){}
+function save(){try{localStorage.setItem(SKEY,JSON.stringify(store));}catch(e){}}
+const prog=()=>store.prog;
+
+function parseCustom(txt){
+  const out=[],seen=new Set();
+  (txt||'').split('\n').forEach(line=>{const m=line.trim().match(/^(.+?)\s*(?:=|\t|—|–|\s-\s)\s*(.+)$/);
+    if(m&&!seen.has(m[1])){seen.add(m[1]);out.push({w:m[1].trim(),t:m[2].trim(),c:''});}});
+  return out;
+}
+function deckFor(id){
+  if(id==='custom'){const d=parseCustom(store.custom);return d.length>=4?d:MINE;}
+  return {mine:MINEPLUS,pics:PICW,lb:LB,all:ALLW}[id]||MINEPLUS;
+}
+const DECKNAMES={mine:'мой список + картинки',pics:'слова к картинкам',lb:'базовые слова',all:'всё вместе',custom:'свой список'};
+
+/* ================= HELPERS ================= */
+const $=id=>document.getElementById(id);
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+const strip=s=>s.replace(/[\[\]]/g,'');
+/* Wrong options come from the same meaning group first (food with food, verbs of motion with each other),
+   then similarly spelled words of the same kind, so the answer can't be guessed from meaning. */
+function distractors(word,field,n,pool){
+  pool=pool||ALLW;
+  const g=grpOf(word),seen=new Set([word[field]]),out=[];
+  const cand=shuffle(pool.filter(w=>w.w!==word.w&&w[field]!==word[field]));
+  const tiers=[cand.filter(w=>g&&grpOf(w)===g)];
+  if(field==='w'){const f=flat(word.w);tiers.push(cand.filter(w=>w.c===word.c).map(w=>[w,lev(flat(w.w),f)]).sort((x,y)=>x[1]-y[1]).slice(0,12).map(x=>x[0]));}
+  tiers.push(cand.filter(w=>word.c&&w.c===word.c),cand);
+  for(const tr of tiers)for(const w of tr){if(out.length>=n)return out;if(!seen.has(w[field])){seen.add(w[field]);out.push(w[field]);}}
+  return out;
+}
+const optPool=()=>store.deck==='custom'?deck:ALLW;
+function bump(w,ok){const p=prog();p[w]=ok?Math.min(5,(p[w]||0)+1):Math.max(0,(p[w]||0)-2);}
+
+/* Renders a question into a container. q = {mode:'fwd'|'rev'|'scr'|'pick'|'order', ...}; calls done(ok) once. */
+function renderQuestion(q,els,done){
+  const {label,prompt,body}=els; body.innerHTML=''; q.t0=performance.now(); q.locked=false;
+  label.textContent=q.label;
+  prompt.className='qprompt'+(q.small?' sm':''); prompt.innerHTML='';
+  if(q.promptHTML) prompt.innerHTML=q.promptHTML; else prompt.textContent=q.prompt;
+  if(q.mode==='scr') return scramble(q,body,done,false);
+  if(q.mode==='order') return scramble(q,body,done,true);
+  const g=document.createElement('div'); g.className='opts'+(q.options.length>5?' eight':'');
+  q.options.forEach(o=>{const b=document.createElement('button');b.className='opt';b.textContent=o;
+    b.onclick=()=>{if(q.locked)return;q.locked=true;const ok=o===q.answer;b.classList.add(ok?'ok':'bad');
+      if(!ok)[...g.children].forEach(x=>{if(x.textContent===q.answer)x.classList.add('ok');});done(ok);};
+    g.appendChild(b);});
+  body.appendChild(g);
+}
+function scramble(q,body,done,words){
+  const ans=words?q.answer.split(' '):Array.from(q.answer);
+  if(!q.tiles){
+    if(words) q.tiles=shuffle([...ans]);
+    else{const d='aeinrstlouhgmë';q.tiles=shuffle([...ans,d[Math.floor(Math.random()*d.length)],d[Math.floor(Math.random()*d.length)]]);}
+    q.typed=[];q.used=[];
+  }
+  const draw=()=>{
+    body.innerHTML='';
+    const slots=document.createElement('div'); slots.className='slots'+(words?' words':'');
+    slots.textContent=q.typed.join(words?' ':''); const c=document.createElement('span');c.className='caret';
+    if(!q.locked) slots.appendChild(c);
+    const tiles=document.createElement('div'); tiles.className='tiles';
+    q.tiles.forEach((ch,i)=>{const b=document.createElement('button');b.className='tile'+(words?' w':'');b.textContent=ch;b.disabled=q.used.includes(i)||q.locked;
+      b.onclick=()=>{if(q.locked)return;q.typed.push(ch);q.used.push(i);
+        if(q.typed.length===ans.length){q.locked=true;const ok=q.typed.join(words?' ':'')===q.answer;draw();slots.classList.add(ok?'ok':'bad');
+          if(!ok){const rv=document.createElement('div');rv.className='reveal';rv.innerHTML='Правильно: <b></b>';rv.querySelector('b').textContent=q.answer;slots.after(rv);}
+          done(ok);} else draw();};
+      tiles.appendChild(b);});
+    const del=document.createElement('button');del.className='tile del';del.textContent='Стереть';del.disabled=q.locked;
+    del.onclick=()=>{if(q.locked||!q.typed.length)return;q.typed.pop();q.used.pop();draw();};
+    tiles.appendChild(del); body.append(slots,tiles);
+  };
+  draw();
+}
+
+/* ================= BATTLE: BOARD ================= */
+const COLS=6, ROWS=8, MAXL=6;
+const PATH=[[0,0],[1,0],[2,0],[3,0],[4,0],[4,1],[4,2],[3,2],[2,2],[1,2],[1,3],[1,4],[2,4],[3,4],[4,4],[4,5],[4,6],[3,6],[2,6],[1,6],[1,7]];
+const pathSet=new Set(PATH.map(p=>p[0]+','+p[1]));
+const WP=[[-0.7,0.5],...PATH.map(p=>[p[0]+.5,p[1]+.5]),[1.5,8.45]];
+const SEG=[];let TOTAL=0;
+for(let i=0;i<WP.length-1;i++){const a=WP[i],b=WP[i+1],l=Math.hypot(b[0]-a[0],b[1]-a[1]);SEG.push({a,b,l,s:TOTAL});TOTAL+=l;}
+function posAt(d){for(const g of SEG){if(d<=g.s+g.l){const k=(d-g.s)/g.l;return [g.a[0]+(g.b[0]-g.a[0])*k,g.a[1]+(g.b[1]-g.a[1])*k];}}return WP[WP.length-1];}
+const TYPES={
+  arc:{name:'лучники',color:'#e8a33d',dark:'#7a4f0e',range:1.75,cd:.55,dmg:4},
+  mag:{name:'маги',color:'#b48cf2',dark:'#4a2b80',range:1.55,cd:1.25,dmg:3.6,splash:.8},
+  ice:{name:'ледяные',color:'#6cc9ef',dark:'#1d5b75',range:1.5,cd:.9,dmg:1.3,slow:1.6}
+};
+const tDmg=(t,l)=>TYPES[t].dmg*Math.pow(2.15,l-1)*(1+.1*store.up.dmg)*(1+(G.buff[t]||0));
+const tRange=(t,l)=>TYPES[t].range+(l-1)*.09;
+
+/* ================= BATTLE: STATE ================= */
+let G=null, running=false, paused=false, last=0, T=0, simT=0, deck=MINE, Q=null, recent=[];
+function newGame(){
+  G={wave:0,hearts:10+2*store.up.walls,coins:40+15*store.up.bank,cost:20,combo:0,bestCombo:0,right:0,wrong:0,missed:new Map(),
+     grid:Array.from({length:ROWS},()=>Array(COLS).fill(null)),enemies:[],fx:[],queue:[],spawnT:0,interval:1,
+     waveActive:false,breakT:1.5,jam:0,freeze:0,retry:[],buff:{},goldN:0,gems:0,quest:null,pendingChest:0};
+  G.maxHearts=G.hearts;
+  G.grid[1][2]={type:'arc',lvl:1,cd:0};G.grid[1][3]={type:'arc',lvl:1,cd:0};
+  T=0;simT=0;newQuest();
+}
+function startWave(n){
+  G.wave=n;G.waveActive=true;
+  const count=Math.min(6+Math.floor(n*1.6),34),q=[];
+  for(let i=0;i<count;i++){if(n>=3&&i%4===3)q.push('fast');else if(n>=5&&i%5===4)q.push('tank');else q.push('norm');}
+  if(n%5===0)q.push('boss');
+  G.queue=q;G.spawnT=.3;G.interval=Math.max(.42,1.1-n*.03);
+  banner('Волна '+n,n%5===0?'Идёт босс со щитом':n===1?'Каждый ответ двигает бой':'');
+  updHud();
+}
+function spawnEnemy(kind){
+  const n=G.wave,base=10*Math.pow(1.2,n-1),sp=.85+Math.min(.45,n*.016),e={kind,d:0,slowT:0,hit:0};
+  if(kind==='norm'){e.hp=base;e.speed=sp;e.r=.17;e.leak=1;e.reward=1;}
+  if(kind==='fast'){e.hp=base*.55;e.speed=sp*1.7;e.r=.13;e.leak=1;e.reward=1;}
+  if(kind==='tank'){e.hp=base*2.6;e.speed=sp*.7;e.r=.23;e.leak=2;e.reward=2;}
+  if(kind==='boss'){e.hp=base*14;e.speed=.5;e.r=.31;e.leak=5;e.reward=20;e.shield=1+Math.floor(n/10);e.maxShield=e.shield;}
+  e.max=e.hp;G.enemies.push(e);if(kind==='boss')setBossUI();
+}
+function emptyCells(){const c=[];for(let r=0;r<ROWS;r++)for(let x=0;x<COLS;x++)if(!pathSet.has(x+','+r)&&!G.grid[r][x])c.push([x,r]);return c;}
+function placeTower(lvl,type){
+  const cells=emptyCells();
+  type=type||rnd(['arc','arc','arc','mag','mag','ice','ice']);
+  if(cells.length){const [x,r]=rnd(cells);G.grid[r][x]={type,lvl,cd:.2,pop:.35};G.fx.push({k:'merge',x:x+.5,y:r+.5,t:0,life:.4});return true;}
+  let low=null;for(let r=0;r<ROWS;r++)for(let x=0;x<COLS;x++){const t=G.grid[r][x];if(t&&t.lvl<MAXL&&(!low||t.lvl<low.lvl))low=t;}
+  if(low){low.lvl=Math.min(MAXL,low.lvl+Math.max(1,lvl-low.lvl));low.pop=.35;return true;}return false;
+}
+function autoBuy(){let n=0;while(n<3&&G.coins>=G.cost&&emptyCells().length){G.coins-=G.cost;G.cost+=4;placeTower(1);n++;}}
+function bossShielded(){return G&&G.enemies.find(e=>e.kind==='boss'&&e.shield>0);}
+function setBossUI(){$('quiz').classList.toggle('boss',!!bossShielded());}
+
+function update(dt){
+  T+=dt;G.jam-=dt;G.freeze-=dt;
+  if(!G.waveActive){G.breakT-=dt;if(G.breakT<=0)startWave(G.wave+1);}
+  if(G.queue.length){G.spawnT-=dt;if(G.spawnT<=0){spawnEnemy(G.queue.shift());G.spawnT=G.interval;}}
+  for(let i=G.enemies.length-1;i>=0;i--){
+    const e=G.enemies[i];
+    if(G.freeze<=0) e.d+=e.speed*(e.slowT>0?.5:1)*dt;
+    e.slowT-=dt;e.hit-=dt;
+    if(e.d>=TOTAL){G.enemies.splice(i,1);G.hearts-=e.leak;G.fx.push({k:'leak',t:0,life:.5});updHud();setBossUI();if(G.hearts<=0){gameOver();return;}}
+  }
+  for(let r=0;r<ROWS;r++)for(let x=0;x<COLS;x++){
+    const t=G.grid[r][x];if(!t)continue;
+    t.cd-=dt;if(t.cd>0||G.jam>0)continue;
+    const cx=x+.5,cy=r+.5,rg=tRange(t.type,t.lvl);let best=null,bs=null;
+    for(const e of G.enemies){const p=posAt(e.d);if(Math.hypot(p[0]-cx,p[1]-cy)<=rg){if(e.shield>0){if(!bs||e.d>bs.d)bs=e;}else if(!best||e.d>best.d)best=e;}}
+    const tgt=best||bs;if(!tgt)continue;fire(t,cx,cy,tgt);t.cd=TYPES[t.type].cd;
+  }
+  if(G.waveActive&&!G.queue.length&&!G.enemies.length){
+    G.waveActive=false;G.breakT=3;const bonus=8+G.wave*2;G.coins+=bonus;G.gems++;
+    banner('Волна '+G.wave+' отбита','+'+bonus+' монет · +1 кристалл');updHud();
+  }
+}
+function fire(t,cx,cy,tgt){
+  const def=TYPES[t.type],dmg=tDmg(t.type,t.lvl),p=posAt(tgt.d);
+  G.fx.push({k:'shot',x1:cx,y1:cy,x2:p[0],y2:p[1],c:def.color,t:0,life:.12,w:1+t.lvl*.4});
+  if(def.splash){G.fx.push({k:'boom',x:p[0],y:p[1],r:def.splash,c:def.color,t:0,life:.3});
+    for(const e of [...G.enemies]){const q=posAt(e.d);if(Math.hypot(q[0]-p[0],q[1]-p[1])<=def.splash)hurt(e,dmg);}}
+  else{if(def.slow&&!(tgt.shield>0))tgt.slowT=def.slow;hurt(tgt,dmg);}
+}
+function hurt(e,dmg){
+  if(e.shield>0){e.hit=.08;return;}
+  e.hp-=dmg;e.hit=.08;
+  if(e.hp<=0){const i=G.enemies.indexOf(e);if(i<0)return;G.enemies.splice(i,1);G.coins+=e.reward;
+    const p=posAt(e.d);G.fx.push({k:'txt',x:p[0],y:p[1],s:'+'+e.reward,c:'#f2c14e',t:0,life:.7});
+    if(e.kind==='boss'){G.gems+=2;banner('Босс повержен','+'+e.reward+' монет · +2 кристалла');}
+    updHud();setBossUI();}
+}
+
+/* ================= BATTLE: REWARDS ================= */
+const CARDS=[
+  {id:'t2',r:1,ic:'2',col:'#e8a33d',name:'Башня 2 уровня',desc:'Появится сразу усиленная башня'},
+  {id:'heal',r:1,ic:'♥',col:'#d8344f',name:'Ремонт стен',desc:'+3 сердца'},
+  {id:'coins',r:1,ic:'40',col:'#f2c14e',name:'Мешок монет',desc:'+40 монет, башни купятся сами'},
+  {id:'freeze',r:1,ic:'❄',col:'#6cc9ef',name:'Заморозка',desc:'Враги стоят на месте 2 хода, башни стреляют'},
+  {id:'t3',r:2,ic:'3',col:'#e8a33d',name:'Башня 3 уровня',desc:'Сильная башня на свободной клетке'},
+  {id:'meteor',r:2,ic:'✦',col:'#e3815f',name:'Метеор',desc:'Снимает 40% здоровья всем врагам без щита'},
+  {id:'gold',r:2,ic:'×2',col:'#f2c14e',name:'Золотая жила',desc:'Двойные монеты за следующие 8 ответов'},
+  {id:'t4',r:3,ic:'4',col:'#b48cf2',name:'Герой: башня 4 уровня',desc:'Мощная башня на поле'},
+  {id:'wrath',r:3,ic:'⚡',col:'#b48cf2',name:'Гнев небес',desc:'Уничтожает всех обычных врагов на поле'},
+  {id:'buff',r:3,ic:'+30',col:'#57c785',name:'Мастер',desc:'',type:null}
+];
+const RAR=['','Обычная','Редкая','Эпическая'];
+function rollCards(minR){
+  const out=[],used=new Set(),luck=store.up.luck,streak=Math.floor(G.combo/4);
+  while(out.length<3){
+    const x=Math.random(),epic=.07+.025*streak+.03*luck,rare=.33+.03*luck;
+    let r=x<epic?3:x<epic+rare?2:1; r=Math.max(r,minR||1);
+    const pool=CARDS.filter(c=>c.r===r&&!used.has(c.id));if(!pool.length)continue;
+    const c=Object.assign({},rnd(pool));used.add(c.id);
+    if(c.id==='buff'){c.type=rnd(Object.keys(TYPES));c.name='Мастер: '+TYPES[c.type].name;c.desc='+30% урона всем башням этого типа до конца игры';c.col=TYPES[c.type].color;}
+    out.push(c);
+  }
+  return out;
+}
+function openChest(title,minR,after){
+  const box=$('chest');box.innerHTML='';box.hidden=false;
+  const h=document.createElement('h3');h.textContent=title;const p=document.createElement('p');p.textContent='Выбери одну награду';box.append(h,p);
+  rollCards(minR).forEach(c=>{
+    const b=document.createElement('button');b.className='card r'+c.r;
+    b.innerHTML='<span class="ic"></span><span style="min-width:0"><b></b><small></small></span><span class="rar"></span>';
+    b.querySelector('.ic').textContent=c.ic;b.querySelector('.ic').style.background=c.col;
+    b.querySelector('b').textContent=c.name;b.querySelector('small').textContent=c.desc;b.querySelector('.rar').textContent=RAR[c.r];
+    b.onclick=()=>{applyCard(c);box.hidden=true;after();};
+    box.appendChild(b);
+  });
+}
+function applyCard(c){
+  if(c.id==='t2')placeTower(2);
+  if(c.id==='t3')placeTower(3);
+  if(c.id==='t4')placeTower(4);
+  if(c.id==='heal')G.hearts=Math.min(G.maxHearts+5,G.hearts+3);
+  if(c.id==='coins'){G.coins+=40;autoBuy();}
+  if(c.id==='freeze')G.freeze=3.4;
+  if(c.id==='gold')G.goldN+=8;
+  if(c.id==='buff')G.buff[c.type]=(G.buff[c.type]||0)+.3;
+  if(c.id==='meteor')for(const e of [...G.enemies]){if(!(e.shield>0)){const p=posAt(e.d);G.fx.push({k:'boom',x:p[0],y:p[1],r:.5,c:'#e3815f',t:0,life:.5});hurt(e,e.max*.4);}}
+  if(c.id==='wrath')for(const e of [...G.enemies]){if(e.kind!=='boss'){const p=posAt(e.d);G.fx.push({k:'boom',x:p[0],y:p[1],r:.4,c:'#b48cf2',t:0,life:.5});hurt(e,e.hp+1);}}
+  updHud();
+}
+function newQuest(){
+  const hasV=deck.some(w=>w.c==='v'), opts=[
+    {k:'right',n:6,t:'Заказ: 6 верных ответов'},
+    {k:'streak',n:5,t:'Заказ: серия из 5 без ошибок'},
+    {k:'fast',n:3,t:'Заказ: 3 быстрых ответа (до 4 сек.)'}];
+  if(hasV)opts.push({k:'verb',n:4,t:'Заказ: 4 глагола без ошибок'});
+  if(G&&G.missed.size)opts.push({k:'fix',n:2,t:'Заказ: исправь 2 ошибки'});
+  const q=Object.assign({p:0},rnd(opts.filter(o=>!G.quest||o.k!==G.quest.k)));
+  G.quest=q;drawQuest();
+}
+function drawQuest(){const q=G.quest;$('questT').textContent=q.t;$('questN').textContent=q.p+'/'+q.n;$('questBar').style.width=(q.p/q.n*100)+'%';}
+function questTick(ok,fast,word,wasRetry){
+  const q=G.quest;
+  if(q.k==='right'&&ok)q.p++;
+  if(q.k==='streak')q.p=ok?q.p+1:0;
+  if(q.k==='fast'&&ok&&fast)q.p++;
+  if(q.k==='verb'&&word.c==='v')q.p=ok?q.p+1:0;
+  if(q.k==='fix'&&ok&&wasRetry)q.p++;
+  if(q.p>=q.n){G.pendingChest=2;G.gems+=2;}
+  drawQuest();
+}
+
+/* ================= BATTLE: QUIZ ================= */
+function pickWord(){
+  if(G.retry.length){G.retry.forEach(x=>x.n--);const i=G.retry.findIndex(x=>x.n<=0);if(i>=0){const w=G.retry.splice(i,1)[0].w;const d=deck.find(x=>x.w===w);if(d)return d;}}
+  const p=prog();let tot=0;
+  const ws=deck.map(w=>{if(recent.includes(w.w))return 0;const b=p[w.w]||0;const v=Math.pow(6-b,2)+(G.missed.has(w.w)?12:0);tot+=v;return v;});
+  let r=Math.random()*tot;for(let i=0;i<deck.length;i++){r-=ws[i];if(r<=0)return deck[i];}
+  return rnd(deck);
+}
+const qEls={label:$('qLabel'),prompt:$('qPrompt'),body:$('qBody')};
+function newQuestion(){
+  const word=pickWord();recent.push(word.w);if(recent.length>Math.min(8,deck.length-4))recent.shift();
+  const box=prog()[word.w]||0,wasRetry=G.missed.has(word.w);
+  let mode=box<2?'fwd':'rev';
+  if(box>=4&&!/\s/.test(word.w)&&Array.from(word.w).length<=12)mode='scr';
+  const boss=bossShielded();
+  const lbl=boss?'Сними щит босса':mode==='fwd'?'Переведи':mode==='rev'?'Как это будет?':'Собери слово';
+  if(mode==='scr')Q={mode,label:lbl,prompt:word.t,answer:word.w};
+  else{const f=mode==='fwd'?'t':'w';Q={mode,label:lbl,prompt:mode==='fwd'?word.w:word.t,answer:word[f],options:shuffle([word[f],...distractors(word,f,7,optPool())])};}
+  Q.word=word;Q.wasRetry=wasRetry;
+  setBossUI();$('combo').textContent=G.combo>1?'серия ×'+G.combo:'';
+  renderQuestion(Q,qEls,ok=>answer(ok));
+}
+function answer(ok){
+  const w=Q.word,fast=performance.now()-Q.t0<4000;
+  bump(w.w,ok);
+  if(ok){
+    G.combo++;G.bestCombo=Math.max(G.bestCombo,G.combo);G.right++;
+    let gain=4+Math.min(G.combo,8);const tags=[];
+    if(fast){gain*=2;tags.push('быстро ×2');}
+    if(G.goldN>0){gain*=2;G.goldN--;tags.push('жила ×2');}
+    G.coins+=gain;G.missed.delete(w.w);
+    G.fx.push({k:'txt',x:3,y:7.55,s:'+'+gain+(tags.length?' · '+tags.join(' · '):''),c:'#f2c14e',t:0,life:1});
+    const boss=bossShielded();
+    if(boss){boss.shield--;const bp=posAt(boss.d);G.fx.push({k:'shield',x:bp[0],y:bp[1],t:0,life:.5});if(!boss.shield)banner('Щит пробит','');}
+    if(G.combo%4===0&&!G.pendingChest)G.pendingChest=1;
+  }else{
+    G.combo=0;G.wrong++;G.missed.set(w.w,w.t);
+    G.jam=1.7;G.retry=G.retry.filter(x=>x.w!==w.w);G.retry.push({w:w.w,n:3});
+  }
+  questTick(ok,fast,w,Q.wasRetry);
+  simT+=1.7;autoBuy();save();updHud();
+  setTimeout(()=>{
+    if(!running)return;
+    if(G.pendingChest){const quest=G.pendingChest===2;G.pendingChest=0;
+      openChest(quest?'Заказ выполнен!':'Сундук за серию!',quest?2:1,()=>{if(quest)newQuest();newQuestion();});}
+    else newQuestion();
+  },ok?450:1700);
+}
+
+/* ================= BATTLE: RENDER ================= */
+const cv=$('cv'),ctx=cv.getContext('2d');
+let S=40,OX=0,OY=0,W=0,H=0;
+function resize(){const r=cv.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2.5);W=r.width;H=r.height;if(!W||!H)return;
+  cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+  S=Math.min(W/COLS,H/(ROWS+.55));OX=(W-S*COLS)/2;OY=(H-S*(ROWS+.55))/2;}
+new ResizeObserver(resize).observe(cv);
+const X=v=>OX+v*S,Y=v=>OY+v*S;
+function rr(x,y,w,h,r){ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,r):ctx.rect(x,y,w,h);}
+function drawTower(t,cx,cy,scale){
+  const def=TYPES[t.type],s=S*(.3+t.lvl*.018)*scale;
+  ctx.save();ctx.translate(cx,cy);
+  if(t.lvl>=4){ctx.shadowColor=def.color;ctx.shadowBlur=S*.08*(t.lvl-2);}
+  ctx.fillStyle=def.dark;ctx.beginPath();ctx.ellipse(0,s*.75,s*.95,s*.32,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=def.color;ctx.strokeStyle=def.dark;ctx.lineWidth=Math.max(1.5,S*.035);ctx.beginPath();
+  if(t.type==='arc'){ctx.moveTo(0,-s);ctx.lineTo(s*.9,s*.7);ctx.lineTo(-s*.9,s*.7);ctx.closePath();}
+  else if(t.type==='mag')ctx.arc(0,0,s*.82,0,Math.PI*2);
+  else{ctx.moveTo(0,-s);ctx.lineTo(s*.8,0);ctx.lineTo(0,s*.85);ctx.lineTo(-s*.8,0);ctx.closePath();}
+  ctx.fill();ctx.shadowBlur=0;ctx.stroke();
+  ctx.fillStyle='#14201b';ctx.font=`800 ${Math.round(s*.78)}px Unbounded, Arial Black, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(t.lvl,0,t.type==='arc'?s*.22:s*.04);ctx.restore();
+}
+function strokePath(off){ctx.beginPath();WP.forEach((p,i)=>i?ctx.lineTo(X(p[0]),Y(p[1])+off):ctx.moveTo(X(p[0]),Y(p[1])+off));ctx.stroke();}
+function draw(){
+  if(!W)return;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#16231e';ctx.fillRect(0,0,W,H);
+  for(let r=0;r<ROWS;r++)for(let x=0;x<COLS;x++){if(pathSet.has(x+','+r))continue;ctx.fillStyle=(x+r)%2?'#21332b':'#243a30';rr(X(x)+S*.05,Y(r)+S*.05,S*.9,S*.9,S*.14);ctx.fill();}
+  ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.strokeStyle='#8f7c57';ctx.lineWidth=S*.8;strokePath(S*.04);
+  ctx.strokeStyle=G.freeze>0?'#bfe3f2':'#cdb98f';ctx.lineWidth=S*.74;strokePath(0);
+  ctx.setLineDash([S*.08,S*.22]);ctx.strokeStyle='rgba(120,98,60,.45)';ctx.lineWidth=S*.05;strokePath(0);ctx.setLineDash([]);
+  const kx=X(1.5),ky=Y(8.12),kw=S*.9;
+  ctx.fillStyle='#d8344f';rr(kx-kw/2,ky,kw,S*1.4,S*.06);ctx.fill();
+  ctx.fillStyle='#16231e';for(let i=0;i<3;i++)ctx.fillRect(kx-kw/2+kw*(.14+i*.29),ky-1,kw*.14,S*.11);
+  ctx.fillStyle='#59b8e6';rr(kx-S*.11,ky+S*.18,S*.22,S*.4,S*.11);ctx.fill();
+  ctx.fillStyle='#34493f';rr(X(0)-S*.08,Y(.12),S*.12,S*.76,S*.04);ctx.fill();
+  const dragT=drag&&G.grid[drag.r][drag.c];
+  if(dragT){const tc=drag.moved?cellFrom(drag.px,drag.py):null,cx=tc?tc[0]+.5:drag.c+.5,cy=tc?tc[1]+.5:drag.r+.5;
+    ctx.fillStyle='rgba(239,232,216,.07)';ctx.strokeStyle='rgba(239,232,216,.35)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(X(cx),Y(cy),tRange(dragT.type,dragT.lvl)*S,0,Math.PI*2);ctx.fill();ctx.stroke();
+    if(tc){const tg=G.grid[tc[1]][tc[0]];if(tg&&tg!==dragT&&tg.type===dragT.type&&tg.lvl===dragT.lvl&&tg.lvl<MAXL){ctx.strokeStyle='#57c785';ctx.lineWidth=3;rr(X(tc[0])+S*.05,Y(tc[1])+S*.05,S*.9,S*.9,S*.14);ctx.stroke();}}}
+  for(let r=0;r<ROWS;r++)for(let x=0;x<COLS;x++){const t=G.grid[r][x];if(!t)continue;
+    if(drag&&drag.moved&&drag.r===r&&drag.c===x){ctx.globalAlpha=.3;drawTower(t,X(x+.5),Y(r+.5),1);ctx.globalAlpha=1;continue;}
+    const pop=t.pop>0?1+Math.sin((t.pop/.35)*Math.PI)*.25:1;if(G.jam>0)ctx.globalAlpha=.45;drawTower(t,X(x+.5),Y(r+.5),pop);ctx.globalAlpha=1;}
+  for(const e of G.enemies){
+    const p=posAt(e.d),ex=X(p[0]),ey=Y(p[1]),er=e.r*S,col={norm:'#8f84a8',fast:'#e3815f',tank:'#5f6b55',boss:'#d8344f'}[e.kind];
+    ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(ex,ey+er*.8,er*.9,er*.35,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=e.hit>0?'#ffffff':(e.slowT>0||G.freeze>0?'#9fdcf5':col);ctx.beginPath();ctx.arc(ex,ey,er,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#16231e';ctx.beginPath();ctx.arc(ex-er*.32,ey-er*.12,er*.14,0,7);ctx.arc(ex+er*.32,ey-er*.12,er*.14,0,7);ctx.fill();
+    if(e.shield>0){ctx.strokeStyle='#59b8e6';ctx.lineWidth=S*.06;ctx.setLineDash([S*.1,S*.06]);ctx.lineDashOffset=-performance.now()/50;
+      ctx.beginPath();ctx.arc(ex,ey,er+S*.1,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+      if(e.maxShield>1){ctx.fillStyle='#59b8e6';ctx.font=`700 ${Math.round(S*.2)}px Unbounded, sans-serif`;ctx.textAlign='center';ctx.fillText('×'+e.shield,ex,ey-er-S*.28);}}
+    if(e.hp<e.max){const bw=Math.max(er*2,S*.4);ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(ex-bw/2,ey-er-S*.13,bw,S*.06);ctx.fillStyle='#57c785';ctx.fillRect(ex-bw/2,ey-er-S*.13,bw*Math.max(0,e.hp/e.max),S*.06);}
+  }
+  for(const f of G.fx){const k=1-f.t/f.life;ctx.globalAlpha=Math.max(0,k);
+    if(f.k==='shot'){ctx.strokeStyle=f.c;ctx.lineWidth=f.w;ctx.beginPath();ctx.moveTo(X(f.x1),Y(f.y1));ctx.lineTo(X(f.x2),Y(f.y2));ctx.stroke();}
+    if(f.k==='boom'){ctx.globalAlpha=k*.35;ctx.fillStyle=f.c;ctx.beginPath();ctx.arc(X(f.x),Y(f.y),f.r*S*(1.1-k*.4),0,7);ctx.fill();}
+    if(f.k==='txt'){ctx.fillStyle=f.c;ctx.font=`700 ${Math.round(S*.22)}px Unbounded, sans-serif`;ctx.textAlign='center';ctx.fillText(f.s,Math.min(Math.max(X(f.x),W*.3),W*.7),Y(f.y)-S*.3-(1-k)*S*.4);}
+    if(f.k==='merge'){ctx.strokeStyle='#efe8d8';ctx.lineWidth=3;ctx.beginPath();ctx.arc(X(f.x),Y(f.y),S*(.3+(1-k)*.5),0,7);ctx.stroke();}
+    if(f.k==='leak'){ctx.globalAlpha=k*.25;ctx.fillStyle='#d8344f';ctx.fillRect(0,0,W,H);}
+    if(f.k==='shield'){ctx.strokeStyle='#59b8e6';ctx.lineWidth=4;ctx.beginPath();ctx.arc(X(f.x),Y(f.y),S*(.4+(1-k)*.8),0,7);ctx.stroke();}
+    ctx.globalAlpha=1;}
+  if(dragT&&drag.moved)drawTower(dragT,drag.px,drag.py,1.12);
+}
+
+/* ================= BATTLE: DRAG & MERGE ================= */
+let drag=null;
+function cellFrom(px,py){const c=Math.floor((px-OX)/S),r=Math.floor((py-OY)/S);return(c>=0&&c<COLS&&r>=0&&r<ROWS)?[c,r]:null;}
+function evPos(e){const b=cv.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top];}
+cv.addEventListener('pointerdown',e=>{if(!running||paused)return;const[px,py]=evPos(e),c=cellFrom(px,py);if(!c||!G.grid[c[1]][c[0]])return;
+  drag={c:c[0],r:c[1],px,py,sx:px,sy:py,moved:false};cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointermove',e=>{if(!drag)return;const[px,py]=evPos(e);drag.px=px;drag.py=py;if(Math.hypot(px-drag.sx,py-drag.sy)>6)drag.moved=true;});
+cv.addEventListener('pointerup',()=>{
+  if(!drag)return;const src=G.grid[drag.r][drag.c],c=drag.moved?cellFrom(drag.px,drag.py):null;
+  if(src&&c&&!(c[0]===drag.c&&c[1]===drag.r)&&!pathSet.has(c[0]+','+c[1])){
+    const tg=G.grid[c[1]][c[0]];
+    if(!tg){G.grid[c[1]][c[0]]=src;G.grid[drag.r][drag.c]=null;}
+    else if(tg.type===src.type&&tg.lvl===src.lvl&&tg.lvl<MAXL){tg.lvl++;tg.pop=.35;G.grid[drag.r][drag.c]=null;
+      G.fx.push({k:'merge',x:c[0]+.5,y:c[1]+.5,t:0,life:.4});G.fx.push({k:'txt',x:c[0]+.5,y:c[1]+.5,s:'Ур. '+tg.lvl,c:'#efe8d8',t:0,life:.8});autoBuy();updHud();}
+    else{G.grid[c[1]][c[0]]=src;G.grid[drag.r][drag.c]=tg;}
+  }
+  drag=null;});
+cv.addEventListener('pointercancel',()=>{drag=null;});
+
+/* ================= BATTLE: FLOW ================= */
+function updHud(){if(!G)return;$('hWave').textContent=Math.max(1,G.wave);$('hHearts').textContent=Math.max(0,G.hearts);$('hCoins').textContent=G.coins;
+  $('combo').textContent=G.combo>1?'серия ×'+G.combo:'';}
+let bTimer=0;
+function banner(t,s){$('bTitle').textContent=t;$('bSub').textContent=s||'';$('bSub').hidden=!s;$('banner').classList.add('show');clearTimeout(bTimer);bTimer=setTimeout(()=>$('banner').classList.remove('show'),1800);}
+function loop(ts){
+  if(!running)return;const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+  if(!paused){
+    if(simT>0){const st=Math.min(dt,simT);simT-=st;update(st);}
+    for(let i=G.fx.length-1;i>=0;i--){G.fx[i].t+=dt;if(G.fx[i].t>=G.fx[i].life)G.fx.splice(i,1);}
+    for(let r=0;r<ROWS;r++)for(let x=0;x<COLS;x++){const t=G.grid[r][x];if(t&&t.pop>0)t.pop-=dt;}
+  }
+  if(running)draw();requestAnimationFrame(loop);
+}
+function hideAll(){['menu','over','pause','settings','shop','gallery','lesson'].forEach(id=>$(id).hidden=true);}
+function startGame(){
+  deck=deckFor(store.deck);recent=[];hideAll();$('chest').hidden=true;
+  newGame();running=true;paused=false;resize();updHud();newQuestion();
+  banner('Wuertbuerg','Бой ждёт твоего ответа');last=performance.now();requestAnimationFrame(loop);
+}
+function gameOver(){
+  running=false;$('chest').hidden=true;
+  store.gems+=G.gems;const nb=G.wave>(store.best||0);if(nb)store.best=G.wave;save();
+  $('oTitle').textContent=nb?'Новый рекорд':'Замок пал';$('oWave').textContent=G.wave;
+  const tot=G.right+G.wrong;$('oAcc').textContent=tot?Math.round(G.right/tot*100)+'%':'—';$('oGems').textContent=G.gems;
+  const m=$('oMissed');m.innerHTML='';
+  if(!G.missed.size){$('oMissHead').textContent=G.wrong?'Все ошибки исправлены за игру.':'Ни одной ошибки за игру.';m.hidden=true;}
+  else{$('oMissHead').textContent='Повтори эти слова:';m.hidden=false;
+    G.missed.forEach((t,w)=>{const d=document.createElement('div'),b=document.createElement('b'),s=document.createElement('span');b.textContent=w;s.textContent=t;d.append(b,s);m.appendChild(d);});}
+  $('over').hidden=false;
+}
+function setPause(v){if(!running)return;paused=v;$('pause').hidden=!v;if(!v)last=performance.now();}
+function quitBattle(){if(running&&G){store.gems+=G.gems;G.gems=0;save();}running=false;showMenu();}
+
+/* ================= MENU, DECK, SHOP ================= */
+function showMenu(){
+  running=false;hideAll();
+  const p=prog(),d=deckFor(store.deck);
+  $('mMastered').textContent=Object.values(p).filter(b=>b>=4).length;
+  $('mBest').textContent=store.best?'волна '+store.best:'—';
+  $('mGems').textContent=store.gems;
+  $('mDeckLine').textContent='Словарь: '+DECKNAMES[store.deck]+' · '+d.length+' слов';
+  const done=Object.keys(store.pics).length;
+  $('mPicsLine').textContent='30 картинок · пройдено '+done;
+  $('menu').hidden=false;
+}
+$('goBattle').onclick=startGame;$('oAgain').onclick=startGame;$('oMenu').onclick=showMenu;
+$('pauseBtn').onclick=()=>setPause(true);$('resumeBtn').onclick=()=>setPause(false);$('quitBtn').onclick=quitBattle;
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!paused)setPause(true);});
+
+$('cMine').textContent=MINE.length+' слов из твоего списка + '+(MINEPLUS.length-MINE.length)+' слов и фраз с картинок';$('cPics').textContent=PICW.length+' слов и фраз из 30 картинок';
+$('cLb').textContent=LB.length+' самых частых слов';$('cAll').textContent=ALLW.length+' слов';
+let resetArm=false;
+$('goDeck').onclick=()=>{
+  document.querySelectorAll('input[name=deck]').forEach(r=>r.checked=r.value===store.deck);
+  $('customTxt').value=store.custom||'';$('deckErr').hidden=true;resetArm=false;$('resetBtn').textContent='Сбросить прогресс слов';
+  hideAll();$('settings').hidden=false;};
+$('setCancel').onclick=showMenu;
+$('setSave').onclick=()=>{
+  const v=(document.querySelector('input[name=deck]:checked')||{}).value||'mine',txt=$('customTxt').value;
+  if(v==='custom'&&parseCustom(txt).length<4){$('deckErr').textContent='Найдено пар: '+parseCustom(txt).length+'. Нужно минимум 4, по одной на строку: слово = перевод.';$('deckErr').hidden=false;return;}
+  store.deck=v;store.custom=txt;save();showMenu();};
+$('resetBtn').onclick=()=>{if(!resetArm){resetArm=true;$('resetBtn').textContent='Нажми ещё раз, чтобы сбросить';return;}
+  store.prog={};store.pics={};save();resetArm=false;showMenu();};
+
+const UPS=[{k:'bank',name:'Казна',desc:'+15 монет на старте битвы'},{k:'walls',name:'Стены',desc:'+2 сердца у замка'},
+  {k:'dmg',name:'Кузница',desc:'+10% урона всем башням'},{k:'luck',name:'Удача',desc:'Чаще редкие и эпические награды в сундуках'}];
+const upCost=l=>6*(l+1);
+function drawShop(){
+  $('sGems').textContent=store.gems;const box=$('ups');box.innerHTML='';
+  UPS.forEach(u=>{const l=store.up[u.k],max=l>=5,cost=upCost(l);
+    const d=document.createElement('div');d.className='up';
+    d.innerHTML='<div class="t"><b></b><small></small><div class="pips">'+[0,1,2,3,4].map(i=>'<i class="'+(i<l?'on':'')+'"></i>').join('')+'</div></div><button class="buy"></button>';
+    d.querySelector('b').textContent=u.name;d.querySelector('small').textContent=u.desc;
+    const b=d.querySelector('.buy');
+    if(max){b.textContent='Макс.';b.disabled=true;}
+    else{b.innerHTML='<span class="gem"></span>'+cost;b.disabled=store.gems<cost;b.onclick=()=>{if(store.gems<cost)return;store.gems-=cost;store.up[u.k]++;save();drawShop();};}
+    box.appendChild(d);});
+}
+$('goShop').onclick=()=>{hideAll();drawShop();$('shop').hidden=false;};
+$('shopBack').onclick=showMenu;
+
+/* ================= PICTURES ================= */
+const imgSrc=p=>'pics/'+p.id+'.jpg';
+function showGallery(){
+  hideAll();const g=$('gal');g.innerHTML='';
+  PICS.forEach((p,i)=>{const b=document.createElement('button');b.className='gcell';
+    const st=store.pics[p.id]||0;
+    b.innerHTML='<img loading="lazy" alt=""><span></span>'+(st?'<em class="st"></em>':'');
+    b.querySelector('img').src=imgSrc(p);b.querySelector('span').textContent=(i+1)+'. '+p.lb;
+    if(st)b.querySelector('.st').textContent='★'.repeat(st);
+    b.onclick=()=>startLesson(i);g.appendChild(b);});
+  const ph=$('phr');ph.innerHTML='';
+  PHRASES.forEach(([a,b])=>{const d=document.createElement('div'),x=document.createElement('b'),y=document.createElement('span');x.textContent=a;y.textContent=b;d.append(x,y);ph.appendChild(d);});
+  $('gallery').hidden=false;$('gallery').scrollTop=0;
+}
+const MODEHINT={hard:'Сначала сам называешь всё, что видишь. Потом вспоминаешь остальное с подсказками, вписываешь слова во фразы, говоришь вслух и отвечаешь экзаменатору на время.',
+  easy:'Для новой картинки: список слов, выбор из вариантов, лишнее слово, пропуски и сборка фразы.'};
+function drawMode(){const m=store.picMode||'hard';$('mHard').setAttribute('aria-checked',m==='hard');$('mEasy').setAttribute('aria-checked',m==='easy');$('modeHint').textContent=MODEHINT[m];}
+$('mHard').onclick=()=>{store.picMode='hard';save();drawMode();};$('mEasy').onclick=()=>{store.picMode='easy';save();drawMode();};
+$('goPics').onclick=()=>{drawMode();showGallery();};$('galBack').onclick=showMenu;
+
+let L=null;
+/* ---- answer matching: exact / missing article / accents / one typo ---- */
+const norm=s=>s.toLowerCase().trim().replace(/[’`´]/g,"'").replace(/\s+/g,' ').replace(/[.!?,;]+$/,'').replace(/^d ' ?|^d (?=\S)/,"d'");
+const RANK={exact:4,article:3,accent:2,typo:1};
+const core=s=>norm(s).replace(/^(d'|de |den |dat |déi |eng |en |e )/,'');
+const flat=s=>core(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+function lev(a,b){const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>[i]);for(let j=1;j<=n;j++)d[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[m][n];}
+function match(inp,target){
+  if(!inp.trim())return null;
+  if(norm(inp)===norm(target))return 'exact';
+  if(core(inp)===core(target))return 'article';
+  if(flat(inp)===flat(target))return 'accent';
+  if(flat(target).length>=5&&lev(flat(inp),flat(target))<=1)return 'typo';
+  return null;
+}
+const NOTE={article:'почти: не забудь артикль',accent:'почти: проверь буквы ë / é / ä',typo:'почти: опечатка'};
+
+function buildSteps(p){
+  const words=p.w.map(x=>{const[w,t]=x.split('|');return{w,t,c:/^(d'|de |den )/.test(w)?'n':'a'};});
+  const sents=p.s.map(x=>{const[l,r]=x.split('|');return{l,r};});
+  const steps=[{k:'storm'},{k:'gap'}];   /* recall steps get inserted at 'gap' after the brainstorm */
+  sents.forEach(s=>steps.push({k:'cloze',s}));
+  sents.forEach(s=>steps.push({k:'speak',s}));
+  steps.push({k:'exam',q:EXAM_DESC,sec:45});
+  steps.push({k:'exam',q:rnd(EXAM_PERS),sec:30});
+  steps.push({k:'done'});
+  return {words,sents,steps};
+}
+function startLesson(i){
+  if(store.picMode==='easy')return startLessonE(i);
+  const p=PICS[i],b=buildSteps(p);
+  L={i,p,words:b.words,sents:b.sents,steps:b.steps,at:0,errors:0,found:new Set(),hintsUsed:0,requeued:new Set()};
+  hideAll();$('lesson').hidden=false;
+  $('lesImg').src=imgSrc(p);$('zoomImg').src=imgSrc(p);
+  $('lesTitle').textContent=p.lb;$('lesTitleRu').textContent=(i+1)+' из 30 · '+p.ru;
+  renderStep();
+}
+function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+/* text input with ë é ä ' helper keys */
+function inputRow(onSubmit,placeholder){
+  const wrap=el('div','inrow');
+  const inp=el('input','tin');inp.type='text';inp.id='lesInput';inp.autocomplete='off';inp.autocapitalize='off';inp.spellcheck=false;inp.placeholder=placeholder||'Пиши по-люксембургски';
+  inp.setAttribute('enterkeyhint','done');
+  const go=el('button','btn primary go','Ок');
+  const keys=el('div','keys');
+  ["ë","é","ä","'"].forEach(ch=>{const k=el('button','key',ch);k.type='button';
+    k.onpointerdown=e=>e.preventDefault();
+    k.onclick=()=>{const s=inp.selectionStart??inp.value.length,e2=inp.selectionEnd??s;inp.value=inp.value.slice(0,s)+ch+inp.value.slice(e2);inp.focus();inp.setSelectionRange(s+1,s+1);};
+    keys.appendChild(k);});
+  const line=el('div','inline');line.append(inp,go);
+  const submit=()=>{onSubmit(inp.value,inp);};
+  go.onclick=submit;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();submit();}};
+  inp.onfocus=()=>$('lesson').classList.add('typing');inp.onblur=()=>setTimeout(()=>{if(document.activeElement!==inp)$('lesson').classList.remove('typing');},150);
+  wrap.append(line,keys);
+  return {wrap,inp,go};
+}
+function feedback(box,kind,html){box.className='fb '+kind;box.innerHTML=html;}
+function escT(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function advance(delay){setTimeout(()=>{L.at++;renderStep();},delay);}
+
+function renderStep(){
+  const st=L.steps[L.at],body=$('lesBody');body.innerHTML='';
+  if(st.k==='gap'){ /* insert recall steps for words not found in brainstorm */
+    const miss=L.words.filter(w=>!L.found.has(w.w));
+    L.steps.splice(L.at,1,...shuffle(miss).map(w=>({k:'recall',w})));
+    return renderStep();
+  }
+  const total=L.steps.length-1;$('lesProg').style.width=(L.at/total*100)+'%';
+  $('lesCount').textContent=st.k==='done'?'':(L.at+1)+'/'+total;
+  if(st.k==='storm')return stepStorm(body);
+  if(st.k==='recall')return stepRecall(body,st);
+  if(st.k==='cloze')return stepCloze(body,st);
+  if(st.k==='speak')return stepSpeak(body,st);
+  if(st.k==='exam')return stepExam(body,st);
+  if(st.k==='done')return finishLesson();
+}
+
+/* 1. Brainstorm: picture only, name everything you see */
+function stepStorm(body){
+  const card=el('div','quiz');
+  const head=el('div','qhead');head.append(el('span','qlabel','Что ты видишь?'),el('span','combo','0 из '+L.words.length));
+  const pr=el('div','qprompt sm','Назови по-люксембургски всё, что есть на картинке. Подсказок нет, пока сам не попросишь.');
+  const chips=el('div','chips');
+  const fb=el('div','fb');
+  const upd=()=>{head.lastChild.textContent=L.found.size+' из '+L.words.length;chips.innerHTML='';
+    L.words.filter(w=>L.found.has(w.w)).forEach(w=>{chips.appendChild(el('span','chip ok',w.w));});
+    if(L.found.size===L.words.length){feedback(fb,'ok','Все 8 слов найдены!');nx.textContent='Дальше';}};
+  const {wrap,inp}=inputRow((v,inp)=>{
+    if(!v.trim())return;
+    let best=null,kind=null;
+    for(const w of L.words){const m=match(v,w.w);if(m&&(!kind||RANK[m]>RANK[kind])){best=w;kind=m;}}
+    if(best&&L.found.has(best.w))feedback(fb,'mid','<b>'+escT(best.w)+'</b> уже есть');
+    else if(best){L.found.add(best.w);bump(best.w,true);save();
+      feedback(fb,kind==='exact'?'ok':'mid',(kind==='exact'?'Верно: ':NOTE[kind]+' → ')+'<b>'+escT(best.w)+'</b> · '+escT(best.t));upd();}
+    else{const known=ALLW.find(w=>match(v,w.w)==='exact');
+      feedback(fb,'no',known?'<b>'+escT(known.w)+'</b> ('+escT(known.t)+') есть в словаре, но не в списке этой картинки':'Такого слова нет в списке этой картинки');}
+    inp.value='';inp.focus();
+  });
+  const hint=el('button','btn slim','Подсказка по-русски');
+  hint.onclick=()=>{const left=L.words.filter(w=>!L.found.has(w.w)&&!w.hinted);if(!left.length){hint.disabled=true;return;}
+    const w=rnd(left);w.hinted=true;L.hintsUsed++;feedback(fb,'mid','На картинке есть: <b>'+escT(w.t)+'</b>. Как это по-люксембургски?');};
+  const nx=el('button','btn','Больше не вспомню, дальше');
+  nx.onclick=()=>{L.errors+=Math.max(0,L.words.length-L.found.size-2);advance(0);};
+  const row=el('div','row');row.append(hint,nx);
+  card.append(head,pr,wrap,fb,chips);body.append(card,row);upd();
+}
+
+/* 2. Recall: Russian prompt, type the word, hint ladder */
+function stepRecall(body,st){
+  const w=st.w;let level=0,revealed=false;
+  const card=el('div','quiz');
+  const head=el('div','qhead');head.append(el('span','qlabel',st.again?'Ещё раз':'Вспомни слово с картинки'));
+  const pr=el('div','qprompt',w.t);
+  const mask=el('div','mask');
+  const fb=el('div','fb');
+  const letters=Array.from(w.w);
+  const showMask=()=>{
+    if(level===0){mask.textContent='';return;}
+    const art=(w.w.match(/^(d'|de |den )/)||[''])[0],rest=letters.slice(art.length);
+    mask.textContent=art+rest.map((c,i)=>i===0||c===' '||c==='-'?c:(level>=2?'_':'')).join(level>=2?' ':'')+(level===1?'…':'');
+  };
+  const {wrap,inp}=inputRow((v,inp)=>{
+    const m=match(v,w.w);
+    if(revealed){ if(m){feedback(fb,'ok','Записал. Вернётся в конце урока.');inp.disabled=true;advance(900);} else feedback(fb,'no','Перепиши точно: <b>'+escT(w.w)+'</b>'); return;}
+    if(!m){feedback(fb,'no','Не то. Попробуй ещё или возьми подсказку.');inp.select();return;}
+    inp.disabled=true;
+    const clean=m==='exact'&&level===0;
+    bump(w.w,clean);if(level>0)L.errors+=.5;save();
+    feedback(fb,m==='exact'?'ok':'mid',(m==='exact'?'Верно':NOTE[m])+': <b>'+escT(w.w)+'</b>');
+    advance(m==='exact'?650:1500);
+  });
+  const hb=el('button','btn slim','Первая буква');
+  hb.onclick=()=>{
+    if(level===0){level=1;hb.textContent='Длина слова';}
+    else if(level===1){level=2;hb.textContent='Показать ответ';}
+    else{revealed=true;hb.disabled=true;L.errors++;bump(w.w,false);save();
+      feedback(fb,'no','Ответ: <b>'+escT(w.w)+'</b>. Перепиши его, чтобы запомнить.');
+      if(!L.requeued.has(w.w)){L.requeued.add(w.w);const at=L.steps.findIndex(s=>s.k==='cloze');L.steps.splice(at<0?L.steps.length-1:at,0,{k:'recall',w,again:true});}}
+    showMask();inp.focus();
+  };
+  card.append(head,pr,mask,wrap,fb);body.append(card,hb);
+}
+
+/* 3. Cloze typed: no options */
+function stepCloze(body,st){
+  const ans=st.s.l.match(/\[(.+?)\]/)[1];let hinted=false;
+  const card=el('div','quiz');
+  const head=el('div','qhead');head.append(el('span','qlabel','Впиши пропущенное слово'));
+  const pr=el('div','qprompt sm');pr.innerHTML=escT(st.s.l).replace(/\[(.+?)\]/,'<span class="gap">&nbsp;?&nbsp;</span>');
+  const sub=el('div','qsub',st.s.r);
+  const fb=el('div','fb');
+  const {wrap,inp}=inputRow((v,inp)=>{
+    const m=match(v,ans);
+    if(!m){feedback(fb,'no','Не то. Посмотри на перевод ещё раз.');inp.select();return;}
+    inp.disabled=true;if(hinted)L.errors+=.5;
+    pr.innerHTML=escT(st.s.l).replace(/\[(.+?)\]/,'<b style="color:var(--ok)">$1</b>');
+    feedback(fb,m==='exact'?'ok':'mid',m==='exact'?'Верно':NOTE[m]+': <b>'+escT(ans)+'</b>');advance(m==='exact'?800:1600);
+  },'Слово');
+  const hb=el('button','btn slim','Подсказка');
+  const give=el('button','btn slim','Сдаюсь');
+  hb.onclick=()=>{hinted=true;hb.disabled=true;feedback(fb,'mid','Начинается на <b>'+escT(Array.from(ans)[0])+'</b>, букв: '+Array.from(ans).length);inp.focus();};
+  give.onclick=()=>{L.errors++;inp.disabled=true;pr.innerHTML=escT(st.s.l).replace(/\[(.+?)\]/,'<b style="color:var(--bad)">$1</b>');feedback(fb,'no','Ответ: <b>'+escT(ans)+'</b>');advance(1900);};
+  const row=el('div','row');row.append(hb,give);
+  card.append(head,pr,sub,wrap,fb);body.append(card,row);
+}
+
+/* 4. Say it aloud, then self-check against the model */
+function stepSpeak(body,st){
+  const card=el('div','quiz');
+  const head=el('div','qhead');head.append(el('span','qlabel','Скажи вслух по-люксембургски'));
+  const pr=el('div','qprompt sm',st.s.r);
+  const tip=el('div','qsub','Произнеси фразу целиком, потом сверься с образцом.');
+  const ans=el('div','model');ans.hidden=true;ans.textContent=strip(st.s.l);
+  const show=el('button','btn primary','Показать образец');
+  const grade=el('div','row');grade.hidden=true;
+  [['Сказал так же',0,'ok'],['С ошибками',.5,'mid'],['Не смог',1,'no']].forEach(([t,e,c])=>{const b=el('button','btn slim g-'+c,t);b.onclick=()=>{L.errors+=e;advance(150);};grade.appendChild(b);});
+  show.onclick=()=>{ans.hidden=false;show.hidden=true;grade.hidden=false;tip.textContent='Как получилось?';};
+  card.append(head,pr,tip,ans);body.append(card,show,grade);
+}
+
+/* 5. Examiner: Sproochentest-style question, answer aloud against a timer */
+const EXAM_DESC={lb:'Beschreift mir d\'Foto, wann ech gelift.',ru:'Опишите мне фото, пожалуйста.',help:'Op der Foto gesäit een … · Am Virdergrond … · Am Hannergrond … · Lénks / Riets …'};
+const EXAM_PERS=[
+  {lb:'Waart Dir schonn eemol op esou enger Plaz?',ru:'Вы когда-нибудь бывали в таком месте?',help:'Jo, ech war … · Neen, ech war nach ni … · Lescht Joer …'},
+  {lb:'Gefält Iech dës Foto? Firwat?',ru:'Вам нравится это фото? Почему?',help:'Jo, mir gefält … well … · Neen, well …'},
+  {lb:'Wat géingt Dir do maachen?',ru:'Что бы вы там делали?',help:'Ech géing … · Mat menger Famill …'},
+  {lb:'Wéini waart Dir déi lescht Kéier esou eng Plaz?',ru:'Когда вы последний раз были в таком месте?',help:'Déi lescht Kéier … · Viru … Joer …'}];
+function stepExam(body,st){
+  const card=el('div','quiz');
+  const head=el('div','qhead');const tm=el('span','combo timer',st.sec+' с');head.append(el('span','qlabel','Экзаменатор спрашивает'),tm);
+  const pr=el('div','qprompt sm',st.q.lb);
+  const ru=el('div','qsub',st.q.ru);ru.hidden=true;
+  const tr=el('button','linkbtn','Перевод вопроса');tr.onclick=()=>{ru.hidden=false;tr.hidden=true;};
+  const help=el('div','helpline','Начни так: '+st.q.help);
+  const bar=el('div','prog');const bi=el('i');bi.style.width='100%';bar.appendChild(bi);
+  card.append(head,pr,tr,ru,help,bar);
+  const go=el('button','btn primary','Начать отвечать');
+  const grade=el('div','row');grade.hidden=true;
+  [['Говорил уверенно',0,'ok'],['С паузами',.5,'mid'],['Не получилось',1,'no']].forEach(([t,e,c])=>{const b=el('button','btn slim g-'+c,t);b.onclick=()=>{clearInterval(L.timer);L.errors+=e;advance(150);};grade.appendChild(b);});
+  go.onclick=()=>{go.textContent='Готово';let left=st.sec;const t0=performance.now();
+    go.onclick=()=>{clearInterval(L.timer);go.hidden=true;grade.hidden=false;};
+    L.timer=setInterval(()=>{left=Math.max(0,st.sec-(performance.now()-t0)/1000);tm.textContent=Math.ceil(left)+' с';bi.style.width=(left/st.sec*100)+'%';
+      if(left<=0){clearInterval(L.timer);tm.textContent='время';go.hidden=true;grade.hidden=false;}},200);};
+  body.append(card,go,grade);
+}
+
+function finishLesson(){
+  clearInterval(L.timer);
+  $('lesson').classList.remove('typing');
+  const err=Math.round(L.errors),stars=err<=1?3:err<=4?2:1,prev=store.pics[L.p.id]||0;
+  store.pics[L.p.id]=Math.max(prev,stars);const gems=stars*2+(L.found.size>=6?2:0);store.gems+=gems;save();
+  $('lesProg').style.width='100%';$('lesCount').textContent='';
+  const body=$('lesBody');body.innerHTML='';
+  const s=el('div','stars');s.innerHTML='★'.repeat(stars)+'<i>'+'★'.repeat(3-stars)+'</i>';
+  const k=el('div','kpis');
+  k.innerHTML='<div class="kpi"><small>Вспомнил сам</small><b>'+L.found.size+'/'+L.words.length+'</b></div><div class="kpi"><small>Ошибок</small><b>'+err+'</b></div><div class="kpi"><small>Награда</small><b><span class="gem"></span>+'+gems+'</b></div>';
+  const h=el('div','qlabel','Готовое описание · прочитай вслух');
+  const d=el('div','desc');
+  L.sents.forEach(x=>{const p=el('p',null,strip(x.l));p.appendChild(el('small',null,x.r));d.appendChild(p);});
+  const tg=el('button','btn slim','Скрыть перевод');
+  tg.onclick=()=>{d.classList.toggle('hide-ru');tg.textContent=d.classList.contains('hide-ru')?'Показать перевод':'Скрыть перевод';};
+  const row=el('div','row');
+  const a=el('button','btn','К галерее');a.onclick=showGallery;
+  const n=el('button','btn primary',L.i<PICS.length-1?'Следующая':'Сначала');n.onclick=()=>startLesson((L.i+1)%PICS.length);
+  row.append(a,n);body.append(s,k,h,d,tg,row);
+}
+$('lesBack').onclick=()=>{if(L)clearInterval(L.timer);showGallery();};
+$('lesPhoto').onclick=()=>{$('zoom').hidden=false;};
+$('zoom').onclick=()=>{$('zoom').hidden=true;};
+
+
+/* ---- easy mode (with options) ---- */
+
+const ALLCLOZE=PICS.flatMap(p=>p.s.map(s=>(s.match(/\[(.+?)\]/)||[])[1]).filter(Boolean));
+function buildStepsE(p){
+  const words=p.w.map(x=>{const[w,t]=x.split('|');return{w,t,c:/^(d'|de |den )/.test(w)?'n':'a'};});
+  const sents=p.s.map(x=>{const[l,r]=x.split('|');return{l,r};});
+  const steps=[{k:'intro'}];
+  shuffle([...words]).forEach(w=>steps.push({k:'word',w}));
+  steps.push({k:'odd'});
+  sents.forEach(s=>steps.push({k:'cloze',s}));
+  const shortS=[...sents].sort((a,b)=>strip(a.l).split(' ').length-strip(b.l).split(' ').length)[0];
+  steps.push({k:'order',s:shortS});
+  steps.push({k:'done'});
+  return {words,sents,steps};
+}
+function startLessonE(i){
+  const p=PICS[i];const b=buildStepsE(p);
+  L={i,p,words:b.words,sents:b.sents,steps:b.steps,at:0,errors:0};
+  hideAll();$('lesson').hidden=false;
+  $('lesImg').src=imgSrc(p);$('zoomImg').src=imgSrc(p);
+  $('lesTitle').textContent=p.lb;$('lesTitleRu').textContent=(i+1)+' из 30 · '+p.ru;
+  renderStepE();
+}
+function lessonQuiz(){
+  const wrap=document.createElement('div');wrap.className='quiz';
+  wrap.innerHTML='<div class="qhead"><span class="qlabel"></span></div><div class="qprompt"></div><div class="qbody"></div>';
+  return {wrap,els:{label:wrap.querySelector('.qlabel'),prompt:wrap.querySelector('.qprompt'),body:wrap.querySelector('.qbody')}};
+}
+function renderStepE(){
+  const st=L.steps[L.at],body=$('lesBody');body.innerHTML='';
+  const total=L.steps.length-1;$('lesProg').style.width=(L.at/total*100)+'%';
+  $('lesCount').textContent=st.k==='done'?'':(L.at+1)+'/'+total;
+  $('lesPhoto').hidden=false;
+  const next=ok=>{if(!ok)L.errors++;setTimeout(()=>{L.at++;renderStepE();},ok?550:1900);};
+  if(st.k==='intro'){
+    const h=document.createElement('div');h.className='qlabel';h.textContent='Слова к картинке · посмотри и запомни';
+    const wl=document.createElement('div');wl.className='wordlist';
+    L.words.forEach(w=>{const d=document.createElement('div'),b=document.createElement('b'),s=document.createElement('span');b.textContent=w.w;s.textContent=w.t;d.append(b,s);wl.appendChild(d);});
+    const go=document.createElement('button');go.className='btn primary';go.textContent='Начать';go.onclick=()=>{L.at++;renderStepE();};
+    body.append(h,wl,go);return;
+  }
+  if(st.k==='done'){finishLessonE();return;}
+  const {wrap,els}=lessonQuiz();body.appendChild(wrap);
+  let q;
+  if(st.k==='word'){
+    const w=st.w,box=prog()[w.w]||0,canS=Array.from(w.w).length<=14&&!/\s/.test(w.w.replace(/^(de|den) /,''));
+    if(box>=2&&canS&&!/ /.test(w.w)) q={mode:'scr',label:'Собери слово',prompt:w.t,answer:w.w};
+    else q={mode:'pick',label:'Как сказать на картинке?',prompt:w.t,answer:w.w,options:shuffle([w.w,...distractors(w,'w',7,ALLW)])};
+    renderQuestion(q,els,ok=>{bump(w.w,ok);save();next(ok);});
+  }
+  if(st.k==='odd'){
+    const mine=new Set(L.words.map(w=>w.w)),mineT=new Set(L.words.map(w=>w.t));
+    const others=PICW.filter(w=>w.c!=='p'&&!mine.has(w.w)&&!mineT.has(w.t));
+    const out=rnd(others);
+    q={mode:'pick',label:'Чего нет на картинке?',prompt:'Wat ass net op der Foto?',answer:out.w,options:shuffle([out.w,...shuffle(L.words.map(w=>w.w)).slice(0,3)])};
+    renderQuestion(q,els,ok=>next(ok));
+  }
+  if(st.k==='cloze'){
+    const m=st.s.l.match(/\[(.+?)\]/),ans=m[1];
+    const html=st.s.l.replace(/\[(.+?)\]/,'<span class="gap">&nbsp;?&nbsp;</span>');
+    const dis=shuffle(ALLCLOZE.filter(x=>x!==ans)).filter((x,i,a)=>a.indexOf(x)===i).slice(0,7);
+    q={mode:'pick',label:'Вставь слово',promptHTML:esc(html),small:true,answer:ans,options:shuffle([ans,...dis])};
+    renderQuestion(q,els,ok=>{const pr=els.prompt;pr.innerHTML=esc(st.s.l.replace(/\[(.+?)\]/,'<b style="color:var(--ok)">$1</b>'));
+      const s=document.createElement('div');s.className='qsub';s.textContent=st.s.r;pr.after(s);next(ok);});
+    const s=document.createElement('div');s.className='qsub';s.textContent=st.s.r;els.prompt.after(s);
+  }
+  if(st.k==='order'){
+    q={mode:'order',label:'Собери фразу',prompt:st.s.r,small:true,answer:strip(st.s.l)};
+    renderQuestion(q,els,ok=>next(ok));
+  }
+}
+function esc(html){return html.replace(/&(?!nbsp;)/g,'&amp;').replace(/<(?!\/?(span|b)( |>))/g,'&lt;');}
+function finishLessonE(){
+  const stars=L.errors<=1?3:L.errors<=4?2:1,prev=store.pics[L.p.id]||0;
+  store.pics[L.p.id]=Math.max(prev,stars);const gems=stars*2;store.gems+=gems;save();
+  $('lesProg').style.width='100%';
+  const body=$('lesBody');body.innerHTML='';
+  const s=document.createElement('div');s.className='stars';s.innerHTML='★'.repeat(stars)+'<i>'+'★'.repeat(3-stars)+'</i>';
+  const k=document.createElement('div');k.className='kpis two';
+  k.innerHTML='<div class="kpi"><small>Ошибок</small><b>'+L.errors+'</b></div><div class="kpi"><small>Награда</small><b><span class="gem"></span>+'+gems+'</b></div>';
+  const h=document.createElement('div');h.className='qlabel';h.textContent='Готовое описание · прочитай вслух';
+  const d=document.createElement('div');d.className='desc';
+  L.sents.forEach(x=>{const p=document.createElement('p');p.textContent=strip(x.l);const sm=document.createElement('small');sm.textContent=x.r;p.appendChild(sm);d.appendChild(p);});
+  const tg=document.createElement('button');tg.className='btn slim';tg.textContent='Скрыть перевод';
+  tg.onclick=()=>{d.classList.toggle('hide-ru');tg.textContent=d.classList.contains('hide-ru')?'Показать перевод':'Скрыть перевод';};
+  const row=document.createElement('div');row.className='row';
+  const a=document.createElement('button');a.className='btn';a.textContent='К галерее';a.onclick=showGallery;
+  const n=document.createElement('button');n.className='btn primary';n.textContent=L.i<PICS.length-1?'Следующая':'Сначала';n.onclick=()=>startLesson((L.i+1)%PICS.length);
+  row.append(a,n);body.append(s,k,h,d,tg,row);
+}
+
+/* ================= BOOT ================= */
+deck=deckFor(store.deck);newGame();resize();draw();showMenu();
+</script>
+
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>
+</body></html>
