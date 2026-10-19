@@ -127,6 +127,7 @@ button:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
 .mode small{display:block;color:var(--mute);font-size:13px;line-height:1.35;margin-top:2px}
 .mode.primary{background:var(--gold);border-color:var(--gold);color:#2a1f05}
 .mode.primary small{color:#5a4612}
+.resume{display:grid;gap:8px}.resume .btn{text-align:left;font-family:var(--f-body);font-weight:700;font-size:15px;line-height:1.25;padding:10px 16px}.resume .btn small{display:block;font-weight:500;font-size:12px;color:#5a4612}
 .row{display:flex;gap:8px}.row>*{flex:1}
 .btn{min-height:50px;border-radius:14px;background:var(--panel-hi);border:1px solid var(--line);font-weight:600;font-size:15px;padding:0 16px}
 .btn.primary{background:var(--gold);border-color:var(--gold);color:#2a1f05;font-family:var(--f-display);font-weight:800}
@@ -252,6 +253,10 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
       <div class="kpi"><small>Трудные</small><b id="mHard">0</b></div>
       <div class="kpi"><small>Кристаллы</small><b><span class="gem"></span><span id="mGems">0</span></b></div>
     </div>
+    <div class="resume" id="resumeBox" hidden>
+      <button class="btn primary" id="resBattle" hidden></button>
+      <button class="btn primary" id="resHunt" hidden></button>
+    </div>
     <div class="modes">
       <button class="mode primary" id="goBattle"><span class="ic" style="background:#2a1f05"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M4 23V9l3 2V6l3 2V4l3 3 3-3v4l3-2v5l3-2v14z" fill="#f2c14e"/><rect x="11" y="16" width="4" height="7" rx="2" fill="#2a1f05"/></svg></span><span><b>Битва за замок</b><small id="mDeckLine">Словарь: мой список</small></span></button>
       <div class="seg four" id="diffSeg" role="radiogroup" aria-label="Сложность битвы"><button data-d="1">Лёгкий</button><button data-d="2">Средний</button><button data-d="3">Сложный</button><button data-d="4">Безумный</button></div>
@@ -317,7 +322,7 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
     <div class="status">Не успел — слово падает и забирает жизнь. Ошибся — монстр растёт и злится.</div>
   </div>
   <div class="overlay" id="huntPause" hidden>
-    <div class="sheet"><h2>Пауза</h2><button class="btn primary" id="hResume">Продолжить</button><button class="btn" id="hQuit">Выйти в меню</button></div>
+    <div class="sheet"><h2>Пауза</h2><button class="btn primary" id="hResume">Продолжить</button><button class="btn" id="hQuit">Сохранить и выйти в меню</button></div>
   </div>
   <div class="overlay" id="huntOver" hidden>
     <div class="sheet">
@@ -351,7 +356,7 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
     <h2>Пауза</h2>
     <p class="hint" id="pauseDiff"></p>
     <button class="btn primary" id="resumeBtn">Продолжить</button>
-    <button class="btn" id="quitBtn">Выйти в меню</button>
+    <button class="btn" id="quitBtn">Сохранить и выйти в меню</button>
   </div>
 </div>
 <div class="overlay" id="over" hidden>
@@ -1348,16 +1353,31 @@ function loop(ts){
     for(let i=G.fx.length-1;i>=0;i--){G.fx[i].t+=dt;if(G.fx[i].t>=G.fx[i].life)G.fx.splice(i,1);}
     for(let r=0;r<ROWS;r++)for(let x=0;x<COLS;x++){const t=G.grid[r][x];if(t&&t.pop>0)t.pop-=dt;}
   }
-  if(running)draw();requestAnimationFrame(loop);
+  if(running){draw();if(ts-lastSnap>5000){lastSnap=ts;snapBattle();}}requestAnimationFrame(loop);
 }
 function hideAll(){['menu','over','pause','settings','shop','gallery','lesson','hardO','hunt'].forEach(id=>$(id).hidden=true);}
+/* Save & resume: the whole battle state goes to localStorage, so the app can be closed and reopened. */
+let lastSnap=0;
+function snapBattle(){
+  if(!running||!G||G.hearts<=0)return;
+  const s=Object.assign({},G,{fx:[],tip:null,chestOpen:false,missed:[...G.missed],pendingChest:G.chestOpen?(G.pendingChest||1):G.pendingChest});
+  store.saved=store.saved||{};store.saved.battle={g:s,deck:G.deckId||store.deck,diff:store.diff||2,at:Date.now()};save();
+}
+function resumeBattle(){
+  const sv=store.saved&&store.saved.battle;if(!sv)return startGame();
+  store.diff=sv.diff;deck=deckFor(sv.deck);recent=[];hideAll();$('chest').hidden=true;
+  G=sv.g;G.missed=new Map(G.missed||[]);G.fx=[];G.tip=null;G.chestOpen=false;
+  running=true;paused=false;resize();updHud();drawQuest();setBossUI();newQuestion();
+  banner('Продолжаем','Волна '+Math.max(1,G.wave)+' · '+diff().name);last=performance.now();lastSnap=last;requestAnimationFrame(loop);
+}
 function startGame(){
   deck=deckFor(store.deck);recent=[];hideAll();$('chest').hidden=true;
-  newGame();running=true;paused=false;resize();updHud();newQuestion();
+  if(store.saved)delete store.saved.battle;
+  newGame();G.deckId=store.deck;running=true;paused=false;resize();updHud();newQuestion();
   banner('Wuertbuerg','Верные ответы заряжают башни');last=performance.now();requestAnimationFrame(loop);
 }
 function gameOver(){
-  running=false;$('chest').hidden=true;
+  running=false;$('chest').hidden=true;if(store.saved)delete store.saved.battle;
   store.bests=store.bests||{};const dk=store.diff||2;store.gems+=G.gems;const nb=G.wave>(store.bests[dk]||0);if(nb)store.bests[dk]=G.wave;store.best=Math.max(store.best||0,G.wave);save();
   $('oTitle').textContent=(nb?'Новый рекорд':'Замок пал')+' · '+diff().name;$('oWave').textContent=G.wave;
   const tot=G.right+G.wrong;$('oAcc').textContent=tot?Math.round(G.right/tot*100)+'%':'—';$('oGems').textContent=G.gems;
@@ -1369,14 +1389,24 @@ function gameOver(){
 }
 
 function setPause(v){if(!running)return;paused=v;$('pause').hidden=!v;if(v)$('pauseDiff').textContent='Сложность: '+diff().name+' ('+diff().pace+'). Сменить можно в меню перед битвой.';if(!v)last=performance.now();}
-function quitBattle(){if(running&&G){store.gems+=G.gems;G.gems=0;save();}running=false;showMenu();}
+function quitBattle(){if(running&&G){store.gems+=G.gems;G.gems=0;snapBattle();}running=false;showMenu();}
 
 /* ================= MENU, DECK, SHOP ================= */
 function drawDiff(){const d=String(store.diff||2);document.querySelectorAll('#diffSeg button').forEach(b=>b.setAttribute('aria-checked',b.dataset.d===d));
   $('diffHint').textContent=diff().name+': чтобы удержать замок, нужен '+diff().pace+'.';}
 document.querySelectorAll('#diffSeg button').forEach(b=>b.onclick=()=>{store.diff=+b.dataset.d;save();drawDiff();});
+function ago(ts){const m=Math.round((Date.now()-ts)/60000);return m<1?'только что':m<60?m+' мин. назад':m<1440?Math.round(m/60)+' ч. назад':Math.round(m/1440)+' дн. назад';}
+function drawResume(){
+  const sv=store.saved||{},b=sv.battle,h=sv.hunt;
+  $('resBattle').hidden=!b;$('resHunt').hidden=!h;$('resumeBox').hidden=!b&&!h;
+  if(b){$('resBattle').innerHTML='Продолжить битву<small></small>';$('resBattle').querySelector('small').textContent='Волна '+Math.max(1,b.g.wave)+' · ♥ '+b.g.hearts+' · '+DIFFS[b.diff].name+' · '+ago(b.at);}
+  if(h){$('resHunt').innerHTML='Продолжить охоту<small></small>';$('resHunt').querySelector('small').textContent='Монстр '+h.g.lvl+' · ♥ '+h.g.hearts+' · '+DIFFS[h.diff].name+' · '+ago(h.at);}
+  $('goBattle').querySelector('b').textContent=b?'Новая битва':'Битва за замок';
+  $('goBattle').classList.toggle('primary',!b&&!h);
+  $('goHunt').querySelector('b').textContent=h?'Новая охота':'Охота на дракона';
+}
 function showMenu(){
-  running=false;hideAll();drawDiff();
+  running=false;hideAll();drawDiff();drawResume();
   const p=prog(),d=deckFor(store.deck);
   $('mMastered').textContent=Object.keys(p).filter(w=>boxOf(w)>=4).length;
   const hl=hardList().length,dc=dueCount();$('mHard').textContent=hl;
@@ -1390,8 +1420,10 @@ function showMenu(){
   $('menu').hidden=false;
 }
 $('goBattle').onclick=startGame;$('oAgain').onclick=startGame;$('oMenu').onclick=showMenu;
+$('resBattle').onclick=resumeBattle;$('resHunt').onclick=()=>resumeHunt();
 $('pauseBtn').onclick=()=>setPause(true);$('resumeBtn').onclick=()=>setPause(false);$('quitBtn').onclick=quitBattle;
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!paused)setPause(true);});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running){if(!paused)setPause(true);snapBattle();}});
+window.addEventListener('pagehide',()=>{if(running)snapBattle();});
 
 $('cMine').textContent=MINE.length+' слов из твоего списка + '+(MINEPLUS.length-MINE.length)+' слов и фраз с картинок';$('cPics').textContent=PICW.length+' слов и фраз из 30 картинок';
 $('cLb').textContent=LB.length+' самых частых слов';$('cAll').textContent=ALLW.length+' слов';
@@ -1792,14 +1824,28 @@ function hresize(){const r=hcv.getBoundingClientRect(),dpr=Math.min(window.devic
 new ResizeObserver(hresize).observe(hcv);
 const hEls={label:$('hqLabel'),prompt:$('hqPrompt'),body:$('hqBody')};
 
+let hLastSnap=0;
+function snapHunt(){
+  if(!HG||HG.over||HG.hearts<=0)return;
+  const s=Object.assign({},HG,{fx:[],rockets:[],loot:[],active:null,paused:false,missed:[...HG.missed],
+    items:HG.items.filter(i=>i.state==='fall').map(i=>Object.assign({},i,{q:null}))});
+  store.saved=store.saved||{};store.saved.hunt={g:s,deck:HG.deckId||store.deck,diff:store.diff||2,at:Date.now()};save();
+}
+function resumeHunt(){
+  const sv=store.saved&&store.saved.hunt;if(!sv)return huntStart();
+  store.diff=sv.diff;hideAll();$('hunt').hidden=false;$('huntPause').hidden=true;$('huntOver').hidden=true;
+  deck=deckFor(sv.deck);HG=sv.g;HG.missed=new Map(HG.missed||[]);HG.active=null;HG.hold=0;HG.paused=false;HG.over=false;
+  hresize();huntHud();hBanner(HG.mon.name,'Продолжаем · монстр '+HG.lvl);
+  HG.last=performance.now();hLastSnap=HG.last;requestAnimationFrame(huntLoop);
+}
 function huntStart(){
   hideAll();$('hunt').hidden=false;$('huntPause').hidden=true;$('huntOver').hidden=true;
-  deck=deckFor(store.deck);
+  deck=deckFor(store.deck);if(store.saved)delete store.saved.hunt;
   const d=diff();
   HG={lvl:1,hearts:4,maxHearts:5,combo:0,best:0,right:0,wrong:0,missed:new Map(),retry:[],recent:[],gems:0,
      items:[],rockets:[],fx:[],loot:[],spawnT:.5,freeze:0,dbl:0,shield:0,paused:false,over:false,
      fall:d.sec*2.3,gap:d.sec*1.05,speedUp:1,active:null,t:0,hold:0};
-  newMonster();hresize();huntHud();
+  HG.deckId=store.deck;newMonster();hresize();huntHud();
   hBanner(HG.mon.name,'Отвечай, пока слово не упало');
   HG.last=performance.now();requestAnimationFrame(huntLoop);
 }
@@ -1989,13 +2035,13 @@ function rr2(c,x,y,w,h,r){c.beginPath();c.roundRect?c.roundRect(x,y,w,h,r):c.rec
 function huntLoop(ts){
   if(!HG||HG.over||$('hunt').hidden)return;const dt=Math.min(.05,(ts-HG.last)/1000||0);HG.last=ts;
   if(!HG.paused)huntUpdate(dt*diff().spd/.7);
-  if(HG&&!HG.over)huntDraw();requestAnimationFrame(huntLoop);
+  if(HG&&!HG.over){huntDraw();if(ts-hLastSnap>5000){hLastSnap=ts;snapHunt();}}requestAnimationFrame(huntLoop);
 }
 function huntHud(){$('hLvl').textContent=HG.lvl;$('hLives').textContent='♥'.repeat(Math.max(0,HG.hearts))+'♡'.repeat(Math.max(0,HG.maxHearts-HG.hearts));
   $('hCombo').textContent=HG.combo>1?'серия ×'+HG.combo+(HG.combo>=10?' · метеоры':HG.combo>=5?' · бомбы':''):'';}
 let hbT=0;function hBanner(t,s){$('hbT').textContent=t;$('hbS').textContent=s||'';$('hBanner').classList.add('show');clearTimeout(hbT);hbT=setTimeout(()=>$('hBanner').classList.remove('show'),1700);}
 function huntOver(){
-  HG.over=true;store.gems+=HG.gems;store.huntBest=store.huntBest||{};const dk=store.diff||2;const nb=HG.lvl>(store.huntBest[dk]||0);if(nb)store.huntBest[dk]=HG.lvl;save();
+  HG.over=true;if(store.saved)delete store.saved.hunt;store.gems+=HG.gems;store.huntBest=store.huntBest||{};const dk=store.diff||2;const nb=HG.lvl>(store.huntBest[dk]||0);if(nb)store.huntBest[dk]=HG.lvl;save();
   $('hoTitle').textContent=(nb?'Новый рекорд':'Монстр победил')+' · '+diff().name;
   $('hoLvl').textContent=HG.lvl;const tot=HG.right+HG.wrong;$('hoAcc').textContent=tot?Math.round(HG.right/tot*100)+'%':'—';$('hoGems').textContent=HG.gems;
   const m=$('hoMissed');m.innerHTML='';
@@ -2003,12 +2049,13 @@ function huntOver(){
   else{$('hoMissHead').textContent='Повтори эти слова:';m.hidden=false;HG.missed.forEach((t,w)=>{const d=document.createElement('div'),b=document.createElement('b'),s=document.createElement('span');b.textContent=w;s.textContent=t;d.append(b,s);m.appendChild(d);});}
   $('huntOver').hidden=false;
 }
-function huntQuit(){if(HG&&!HG.over){store.gems+=HG.gems;save();}if(HG)HG.over=true;showMenu();}
+function huntQuit(){if(HG&&!HG.over){store.gems+=HG.gems;HG.gems=0;snapHunt();}if(HG)HG.over=true;showMenu();}
 $('goHunt').onclick=huntStart;
 $('hPauseBtn').onclick=()=>{if(!HG||HG.over)return;HG.paused=true;$('huntPause').hidden=false;};
 $('hResume').onclick=()=>{HG.paused=false;HG.last=performance.now();$('huntPause').hidden=true;};
 $('hQuit').onclick=huntQuit;$('hoMenu').onclick=huntQuit;$('hoAgain').onclick=huntStart;
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&HG&&!HG.over&&!$('hunt').hidden){HG.paused=true;$('huntPause').hidden=false;}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&HG&&!HG.over&&!$('hunt').hidden){HG.paused=true;$('huntPause').hidden=false;snapHunt();}});
+window.addEventListener('pagehide',()=>{if(HG&&!HG.over&&!$('hunt').hidden)snapHunt();});
 
 /* ================= BOOT ================= */
 deck=deckFor(store.deck);newGame();resize();draw();showMenu();
