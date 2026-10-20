@@ -85,6 +85,9 @@ button:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
 .combo{font-family:var(--f-display);font-weight:700;font-size:12px;color:var(--gold);font-variant-numeric:tabular-nums;white-space:nowrap}
 .qprompt{font-family:var(--f-display);font-weight:700;font-size:26px;line-height:1.18;text-wrap:balance;min-height:28px;overflow-wrap:anywhere}
 .qprompt.sm{font-size:18px;font-family:var(--f-body);font-weight:600;line-height:1.35}
+.qprompt .mk{color:var(--gold);border-bottom:2px solid var(--gold)}
+.ctx{margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--ground);font-size:14px;line-height:1.4}
+.ctx small{display:block;color:var(--mute);font-size:12px;margin-top:2px}
 .qprompt .gap{display:inline-block;min-width:70px;border-bottom:3px solid var(--gold);color:var(--gold)}
 .qsub{font-size:13px;color:var(--mute);margin-top:-4px}
 .qbody{min-height:108px}
@@ -127,6 +130,7 @@ button:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
 .mode small{display:block;color:var(--mute);font-size:13px;line-height:1.35;margin-top:2px}
 .mode.primary{background:var(--gold);border-color:var(--gold);color:#2a1f05}
 .mode.primary small{color:#5a4612}
+.resume{display:grid;gap:8px}.resume .btn{text-align:left;font-family:var(--f-body);font-weight:700;font-size:15px;line-height:1.25;padding:10px 16px}.resume .btn small{display:block;font-weight:500;font-size:12px;color:#5a4612}
 .row{display:flex;gap:8px}.row>*{flex:1}
 .btn{min-height:50px;border-radius:14px;background:var(--panel-hi);border:1px solid var(--line);font-weight:600;font-size:15px;padding:0 16px}
 .btn.primary{background:var(--gold);border-color:var(--gold);color:#2a1f05;font-family:var(--f-display);font-weight:800}
@@ -144,6 +148,7 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
 .missed{background:var(--panel);border-radius:12px;padding:6px 12px;max-height:190px;overflow-y:auto}
 .missed div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
 .missed div:last-child{border-bottom:0}
+.missed div.wph{flex-wrap:wrap}.missed div.wph em{flex-basis:100%;font-style:normal;font-size:13px;color:var(--cream);line-height:1.35}.missed div.wph em i{font-style:normal;color:var(--mute)}
 .missed b{font-family:var(--f-display);font-weight:700;font-size:13px}
 .ups{display:grid;gap:8px}
 .up{display:flex;align-items:center;gap:12px;background:var(--panel);border-radius:14px;padding:12px}
@@ -169,6 +174,8 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
 
 /* picture lesson */
 #lesson .screen{gap:10px}
+/* full-screen overlays sit under the iPhone status bar: keep their content clear of it */
+#hunt>.screen,#lesson>.screen{padding-top:max(8px,env(safe-area-inset-top,0px));padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
 .prog{height:6px;border-radius:3px;background:var(--panel-hi);overflow:hidden}
 .prog i{display:block;height:100%;background:var(--gold);transition:width .3s}
 .photo{position:relative;flex:none;border-radius:14px;overflow:hidden;background:var(--panel);aspect-ratio:4/3;max-height:34vh;max-width:100%;align-self:center;width:100%}
@@ -209,6 +216,7 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
 #lesson.typing .photo{max-height:20vh}
 .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--panel);border-radius:12px;padding:4px;gap:4px}
 .seg.three{grid-template-columns:repeat(3,1fr)}
+.optrow{display:flex;align-items:center;gap:12px}.optrow .label{width:92px;flex:none}#dirSeg button{font-size:13px;padding:0 2px}.optrow .seg{flex:1}.optrow .seg button{min-height:34px}
 .seg.four{grid-template-columns:repeat(4,1fr)}.seg.four button{font-size:13px;padding:0 2px}
 .seg button{min-height:40px;border-radius:9px;font-weight:600;color:var(--mute)}
 .seg button[aria-checked="true"]{background:var(--gold);color:#2a1f05}
@@ -237,6 +245,7 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
     <div class="quest" id="quest"><span class="q-t" id="questT"></span><span class="bar"><i id="questBar"></i></span><span class="n" id="questN"></span></div>
     <div class="qhead"><span class="qlabel" id="qLabel">Переведи</span><span class="combo" id="combo"></span></div>
     <div class="qprompt" id="qPrompt"></div>
+    <div class="qsub" id="qSub" hidden></div>
     <div class="qbody" id="qBody"></div>
   </section>
   <div class="status" id="status">Башни стреляют, пока есть заряд (жёлтая полоса). Заряд дают верные ответы</div>
@@ -252,10 +261,16 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
       <div class="kpi"><small>Трудные</small><b id="mHard">0</b></div>
       <div class="kpi"><small>Кристаллы</small><b><span class="gem"></span><span id="mGems">0</span></b></div>
     </div>
+    <div class="resume" id="resumeBox" hidden>
+      <button class="btn primary" id="resBattle" hidden></button>
+      <button class="btn primary" id="resHunt" hidden></button>
+    </div>
     <div class="modes">
       <button class="mode primary" id="goBattle"><span class="ic" style="background:#2a1f05"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M4 23V9l3 2V6l3 2V4l3 3 3-3v4l3-2v5l3-2v14z" fill="#f2c14e"/><rect x="11" y="16" width="4" height="7" rx="2" fill="#2a1f05"/></svg></span><span><b>Битва за замок</b><small id="mDeckLine">Словарь: мой список</small></span></button>
       <div class="seg four" id="diffSeg" role="radiogroup" aria-label="Сложность битвы"><button data-d="1">Лёгкий</button><button data-d="2">Средний</button><button data-d="3">Сложный</button><button data-d="4">Безумный</button></div>
       <p class="hint" id="diffHint" style="margin-top:-4px"></p>
+      <div class="optrow"><span class="label">Направление</span><div class="seg three" id="dirSeg" role="radiogroup" aria-label="Направление перевода"><button data-v="lb">Lux → Рус</button><button data-v="ru">Рус → Lux</button><button data-v="mix">Смешанно</button></div></div>
+      <div class="optrow"><span class="label">Вариантов ответа</span><div class="seg four" id="optSeg" role="radiogroup" aria-label="Сколько вариантов ответа"><button data-n="2">2</button><button data-n="4">4</button><button data-n="6">6</button><button data-n="8">8</button></div></div>
       <button class="mode" id="goHunt"><span class="ic" style="background:#b48cf2"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><ellipse cx="13" cy="15" rx="9" ry="7" fill="#24123d"/><path d="M7 9l-2-5 5 3M19 9l2-5-5 3" fill="#24123d"/><circle cx="10" cy="14" r="2" fill="#fff"/><circle cx="16" cy="14" r="2" fill="#fff"/></svg></span><span><b>Охота на дракона</b><small id="mHuntLine">Слова падают, верные ответы бьют монстра</small></span></button>
       <button class="mode" id="goPics"><span class="ic" style="background:var(--sky)"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="3" y="5" width="20" height="16" rx="3" fill="none" stroke="#0d2230" stroke-width="2.2"/><circle cx="9" cy="10.5" r="2" fill="#0d2230"/><path d="M5 19l5-5 3 3 4-5 4 7" fill="none" stroke="#0d2230" stroke-width="2.2" stroke-linejoin="round"/></svg></span><span><b>Описание картинок</b><small id="mPicsLine">30 картинок · 0 пройдено</small></span></button>
       <button class="mode" id="goHard"><span class="ic" style="background:var(--red)"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 4v10" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="13" cy="20" r="2" fill="#fff"/></svg></span><span><b>Трудные слова</b><small>Слова, на которых был затык</small></span></button>
@@ -271,6 +286,7 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
     <div class="topbar"><h2>Словарь для битвы</h2></div>
     <label class="radio"><input type="radio" name="deck" value="mine"><span>Мой список + картинки<small id="cMine"></small></span></label>
     <label class="radio"><input type="radio" name="deck" value="pics"><span>Слова к картинкам<small id="cPics"></small></span></label>
+    <label class="radio"><input type="radio" name="deck" value="dict"><span>Словарь курса<small id="cDict"></small></span></label>
     <label class="radio"><input type="radio" name="deck" value="lb"><span>Базовые слова<small id="cLb"></small></span></label>
     <label class="radio"><input type="radio" name="deck" value="all"><span>Всё вместе<small id="cAll"></small></span></label>
     <label class="radio"><input type="radio" name="deck" value="custom"><span>Свой список<small>Вставь ниже: слово = перевод</small></span></label>
@@ -317,7 +333,7 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
     <div class="status">Не успел — слово падает и забирает жизнь. Ошибся — монстр растёт и злится.</div>
   </div>
   <div class="overlay" id="huntPause" hidden>
-    <div class="sheet"><h2>Пауза</h2><button class="btn primary" id="hResume">Продолжить</button><button class="btn" id="hQuit">Выйти в меню</button></div>
+    <div class="sheet"><h2>Пауза</h2><button class="btn primary" id="hResume">Продолжить</button><button class="btn" id="hQuit">Сохранить и выйти в меню</button></div>
   </div>
   <div class="overlay" id="huntOver" hidden>
     <div class="sheet">
@@ -351,7 +367,7 @@ textarea{width:100%;min-height:130px;border-radius:12px;background:var(--ground)
     <h2>Пауза</h2>
     <p class="hint" id="pauseDiff"></p>
     <button class="btn primary" id="resumeBtn">Продолжить</button>
-    <button class="btn" id="quitBtn">Выйти в меню</button>
+    <button class="btn" id="quitBtn">Сохранить и выйти в меню</button>
   </div>
 </div>
 <div class="overlay" id="over" hidden>
@@ -746,6 +762,1980 @@ greet:["Moien","Äddi","Merci","Wann ech gelift","Pardon"],
 question:["Wat?","Wien?","Wou?","Wéini?","Firwat?","Wéi vill?"],
 number:["eent","zwee","dräi","véier","fënnef","sechs","siwen","aacht","néng","zéng"]
 };
+const PHR_RAW=`deier|Ass den ëffentlechen Transport zu Lëtzebuerg [deier]?|Общественный транспорт в Люксембурге дорогой?
+Aarbecht|Ech fueren all Moien op d'[Aarbecht].|Я каждое утро езжу на работу.
+Busarrêt|Wou ass déi nächst [Busarrêt] bei Ärem Haus?|Где ближайшая автобусная остановка рядом с вашим домом?
+Da|[Da] gi mer heem.|Тогда пойдём домой.
+Dier|Maach w.e.g. d'[Dier] zou.|Закрой, пожалуйста, дверь.
+Doheem|Haut schaffen ech [doheem].|Сегодня я работаю дома.
+Déier|Den Hond ass e schéint [Déier].|Собака — красивое животное.
+Fliger|Flitt Dir dacks mam [Fliger]?|Вы часто летаете на самолёте?
+Fluchhafen|Wéi kommt Dir op de [Fluchhafen]?|Как вы добираетесь до аэропорта?
+Meeschtens|[Meeschtens] iessen ech doheem.|Чаще всего я ем дома.
+Méint|De Cours dauert dräi [Méint].|Курс длится три месяца.
+Tankstell|Ech muss op d'[Tankstell] fueren.|Мне нужно съездить на заправку.
+Verkéier|Wéi fannt Dir de [Verkéier] zu Lëtzebuerg?|Как вам дорожное движение в Люксембурге?
+akafen|Samschdes ginn ech [akafen].|По субботам я хожу за покупками.
+ausprobéieren|Ech wëll den neie Restaurant [ausprobéieren].|Я хочу попробовать новый ресторан.
+ausrouen|Um Weekend wëll ech mech [ausrouen].|На выходных я хочу отдохнуть.
+bastelen|Ech molen a [bastelen] gär.|Я люблю рисовать и мастерить.
+bedeiten|Wat soll dat [bedeiten]?|Что это должно значить?
+behalen|Sou [behalen] ech se besser.|Так я лучше их запоминаю.
+beim|Ech sinn haut [beim] Dokter.|Сегодня я у врача.
+bekennen|Hie wëll säi Feeler net [bekennen].|Он не хочет признавать свою ошибку.
+benotzen|Kann ech däin Telefon [benotzen]?|Можно воспользоваться твоим телефоном?
+beréieren|Dir däerft d'Biller net [beréieren].|Картины трогать нельзя.
+besichen|Muer wëlle mir meng Mamm [besichen].|Завтра мы хотим навестить мою маму.
+bestellen|Ech wëll eng Pizza [bestellen].|Я хочу заказать пиццу.
+bestueden|Si wëlle sech am Summer [bestueden].|Они хотят пожениться летом.
+beweegen|Ech schlofen genuch an ech [beweegen] mech vill.|Я достаточно сплю и много двигаюсь.
+bewonneren|Dofir [bewonneren] ech hie.|Поэтому я им восхищаюсь.
+bezuelen|Ech muss d'Rechnung [bezuelen].|Мне нужно оплатить счёт.
+bleiwen|Duerno wollt ech hei [bleiwen].|Потом я захотел здесь остаться.
+bléien|Am Fréijoer [bléien] d'Blummen an d'Beem.|Весной цветут цветы и деревья.
+blëtzen|Bei engem Donnerwieder kann et [blëtzen].|Во время грозы может сверкать молния.
+botzen|Samschdes [botzen] ech déi ganz Wunneng.|По субботам я убираю всю квартиру.
+brauchen|Ech [brauchen] Hëllef.|Мне нужна помощь.
+bréngen|Kanns du mir e Glas Waasser [bréngen]?|Можешь принести мне стакан воды?
+buchen|Mir mussen e Fluch [buchen].|Нам нужно забронировать рейс.
+bëssen|Ech schwätzen e [bëssen] Lëtzebuergesch.|Я немного говорю по-люксембургски.
+d'Ausland|Mäi Brudder wunnt am [Ausland].|Мой брат живёт за границей.
+d'Leit|Fuere d'[Leit] gutt zu Lëtzebuerg?|В Люксембурге люди хорошо водят?
+d'lescht|Wéini waart Dir fir d'[lescht] op enger laanger Rees?|Когда вы в последний раз были в долгой поездке?
+dacks|Fuert Dir [dacks] mam Bus?|Вы часто ездите на автобусе?
+danzen|Jo, ech wëll gär [danzen] léieren.|Да, я хочу научиться танцевать.
+daueren|Wéi laang wäert dat [daueren]?|Сколько это продлится?
+decidéieren|Ech kann net [decidéieren].|Я не могу решить.
+deelen|Mir [deelen] de Kuch.|Мы делим торт.
+denken|Besonnesch op de Feierdeeg [denken] ech un si.|Особенно в праздники я думаю о них.
+doen|Ech [doen] praktesch Kleeder un.|Я надеваю удобную одежду.
+donneren|Et fänkt un ze [donneren].|Начинает греметь гром.
+droen|Op der Aarbecht [droen] ech ëmmer e Kostüm.|На работе я всегда ношу костюм.
+drécken|Du muss op de Knäppchen [drécken].|Нужно нажать на кнопку.
+drénken|Duerno [drénken] ech eng Taass Kaffi.|После этого я пью чашку кофе.
+duschen|Ech [duschen] all Moien.|Я принимаю душ каждое утро.
+entspanen|Beim Lafen kann ech mech [entspanen].|Во время бега я могу расслабиться.
+erhuelen|Um Weekend wëll ech mech gutt [erhuelen].|На выходных я хочу хорошо отдохнуть.
+erklären|Kanns du mir dat [erklären]?|Можешь мне это объяснить?
+erzielen|Meng Kanner [erzielen] vun der Schoul.|Мои дети рассказывают о школе.
+erënneren|Ech kann mech net [erënneren].|Я не могу вспомнить.
+falen|Pass op, du kanns [falen]!|Осторожно, можешь упасть!
+fannen|Ech kann meng Schlësselen net [fannen].|Не могу найти свои ключи.
+feelen|Mir [feelen] nach zwee Euro.|Мне не хватает ещё двух евро.
+feieren|Mir wëllen haut [feieren].|Сегодня мы хотим праздновать.
+fidderen|Ech muss d'Kaz [fidderen].|Мне нужно покормить кошку.
+fillen|Um Mier [fillen] ech mech fräi.|У моря я чувствую себя свободно.
+flécken|Ech muss mäi Vëlo [flécken].|Мне нужно починить велосипед.
+fléien|Mir [fléien] an d'Vakanz.|Мы летим в отпуск.
+fotograféieren|Ech [fotograféieren] a wanderen gär.|Я люблю фотографировать и ходить в походы.
+freeën|Mir [freeën] eis op de Weekend.|Мы радуемся предстоящим выходным.
+friessen|D'Kaz wëll näischt [friessen].|Кошка ничего не хочет есть.
+froen|Ech muss den Dokter [froen].|Мне нужно спросить врача.
+fueren|Da [fueren] ech an d'Bierger.|Тогда я езжу в горы.
+funktionéieren|Den Drécker wëll net [funktionéieren].|Принтер не хочет работать.
+fänken|Mäi Jong wëll e Fësch [fänken].|Мой сын хочет поймать рыбу.
+fëmmen|Mäi Papp huet opgehalen ze [fëmmen].|Мой папа бросил курить.
+gebrauchen|Dat kann ech gutt [gebrauchen].|Это мне очень пригодится.
+gefalen|Dat Haus wäert dir [gefalen].|Этот дом тебе понравится.
+gehéieren|All dräi [gehéieren] zu dësem Land.|Все три принадлежат этой стране.
+genéissen|Een kann wanderen, Vëlo fueren an d'Natur [genéissen].|Можно ходить в походы, кататься на велосипеде и наслаждаться природой.
+gesinn|Ech [gesinn] schéin Plazen an der Welt.|Я вижу красивые места в мире.
+ginn|Moies [ginn] ech gär spadséieren.|Утром я люблю ходить на прогулку.
+gleewen|Ech [gleewen] hinnen all Roll.|Я верю им в любой роли.
+goen|Mir konnten all Dag op de Strand [goen].|Мы могли каждый день ходить на пляж.
+gratis|Den ëffentlechen Transport ass [gratis].|Общественный транспорт бесплатный.
+grillen|Den Owend wëlle mir [grillen].|Сегодня вечером мы хотим жарить на гриле.
+gréissen|Mir [gréissen] eis all Dag.|Мы здороваемся каждый день.
+gëschter|Wéi sidd Dir [gëschter] op d'Aarbecht komm?|Как вы вчера добрались до работы?
+halen|Ech [halen] alles propper.|Я держу всё в чистоте.
+heemkommen|Wéini wäerts du [heemkommen]?|Когда ты придёшь домой?
+heeschen|Wéi soll de Bébé [heeschen]?|Как будут звать малыша?
+heiansdo|[Heiansdo] fueren ech mam Vëlo op d'Aarbecht.|Иногда я езжу на работу на велосипеде.
+hoffen|Ech [hoffen], dat bleift de ganzen Dag esou.|Надеюсь, так и останется весь день.
+huelen|Ech [huelen] normalerweis am Juli fräi.|Обычно я беру отпуск в июле.
+hunn|Mir [hunn] zwee Kanner.|У нас двое детей.
+hänken|Ech wëll d'Bild un d'Mauer [hänken].|Я хочу повесить картину на стену.
+héieren|Um Radio [héieren] ech och Lëtzebuergesch.|По радио я слышу и люксембургский.
+hëllefen|Kann ech Iech [hëllefen]?|Могу я вам помочь?
+iessen|Owes [iessen] mir an engem Restaurant.|Вечером мы едим в ресторане.
+informéieren|Ech muss meng Chefin [informéieren].|Мне нужно сообщить моей начальнице.
+interesséieren|Dat kéint dech [interesséieren].|Это могло бы тебя заинтересовать.
+invitéieren|Heiansdo [invitéieren] ech meng Frënn heem.|Иногда я приглашаю друзей домой.
+jiddereen|[Jiddereen] kennt hien.|Все его знают.
+kachen|Do kann ech selwer [kachen].|Там я могу сам готовить.
+kafen|Ech muss Brout [kafen].|Мне нужно купить хлеб.
+kaschten|Wat soll dat [kaschten]?|Сколько это должно стоить?
+kennen|Ech léieren gär nei Leit a nei Kulturen [kennen].|Я люблю знакомиться с новыми людьми и новыми культурами.
+klappen|Hoffentlech wäert dat [klappen].|Надеюсь, это получится.
+kommen|Wéini kanns du [kommen]?|Когда ты можешь прийти?
+kommunizéieren|Ech schaffen, léieren a [kommunizéieren] doriwwer.|Я работаю, учусь и общаюсь через него.
+kréien|Op der Aarbecht [kréien] ech vill Mailen.|На работе я получаю много писем.
+kucken|Moies [kucken] ech d'Noriichten a meng Mailen.|Утром я смотрю новости и проверяю почту.
+këmmeren|Ech muss mech ëm d'Kanner [këmmeren].|Мне нужно позаботиться о детях.
+kënnen|Mir [kënnen] haut net kommen.|Сегодня мы не можем прийти.
+laachen|Mir iessen, schwätzen an [laachen] vill.|Мы едим, разговариваем и много смеёмся.
+laang|Wéi [laang] braucht Dir vun doheem bis op d'Aarbecht?|Сколько времени вам нужно от дома до работы?
+lafen|Ech ginn oft an de Park [lafen].|Я часто хожу в парк на пробежку.
+lauschteren|Ech wëll Musek [lauschteren].|Я хочу послушать музыку.
+leeën|Ech [leeën] mech an d'Bett an raschten.|Я ложусь в постель и отдыхаю.
+leien|Ech [leien] gär an der Sonn.|Я люблю лежать на солнце.
+liesen|Ech [liesen] all Owend.|Я читаю каждый вечер.
+liewen|Dat mécht mäi [Liewen] méi räich.|Это делает мою жизнь богаче.
+lounen|Mir wëllen en Auto [lounen].|Мы хотим взять машину напрокат.
+léieren|Ech [léieren] och Lëtzebuergesch.|Я также учу люксембургский.
+léinen|Kanns du mir däi Vëlo [léinen]?|Можешь одолжить мне свой велосипед?
+léisen|Kreativitéit hëlleft mir, Problemer op eng nei Manéier ze [léisen].|Креативность помогает мне решать проблемы по-новому.
+maachen|Wat wëlls du haut [maachen]?|Что ты хочешь сегодня делать?
+mailen|Moies kucken ech d'Noriichten a meng [Mailen].|Утром я смотрю новости и проверяю почту.
+mathuelen|Du solls e Prabbeli [mathuelen].|Тебе стоит взять с собой зонт.
+matmaachen|Ech wëll beim Concours [matmaachen].|Я хочу участвовать в конкурсе.
+mengen|Ech [mengen], hien huet Recht.|Я думаю, он прав.
+molen|D'Kanner [molen] e Bild.|Дети рисуют картину.
+mussen|Mir [mussen] elo goen.|Нам нужно сейчас идти.
+nodenken|Ech muss nach [nodenken].|Мне нужно ещё подумать.
+notéieren|Ech [notéieren] alles am Kalenner um Handy.|Я записываю всё в календарь на телефоне.
+nächst|Wou ass déi [nächst] Busarrêt bei Ärem Haus?|Где ближайшая автобусная остановка рядом с вашим домом?
+ongeféier|Dat kascht [ongeféier] zéng Euro.|Это стоит примерно десять евро.
+oppassen|Du muss op d'Kanner [oppassen].|Тебе нужно присмотреть за детьми.
+opraumen|Ech muss mäi Zëmmer [opraumen].|Мне нужно прибраться в комнате.
+organiséieren|Mir wëllen e Fest [organiséieren].|Мы хотим организовать праздник.
+packen|Ech muss nach meng Valise [packen].|Мне ещё нужно собрать чемодан.
+parken|Wou kann ech [parken]?|Где я могу припарковаться?
+passen|D'Schong [passen] net.|Ботинки не подходят по размеру.
+passéieren|Dat kann jidderengem [passéieren].|Это может случиться с каждым.
+plangen|All Joer [plangen] ech eng nei Rees.|Каждый год я планирую новую поездку.
+plënneren|Mir wëllen an en anert Haus [plënneren].|Мы хотим переехать в другой дом.
+praktesch|Dëse Rucksak ass ganz [praktesch].|Этот рюкзак очень удобный.
+probéieren|Du muss dat [probéieren]!|Ты должен это попробовать!
+raschten|No dem Iessen [raschten] ech e bëssen.|После еды я немного отдыхаю.
+raumen|D'Kanner [raumen] hir Zëmmeren op.|Дети прибираются в своих комнатах.
+recommandéieren|Kënnt Dir eng Vakanz zu Lëtzebuerg [recommandéieren]?|Вы можете порекомендовать отпуск в Люксембурге?
+reechen|D'Geld muss bis Enn vum Mount [reechen].|Денег должно хватить до конца месяца.
+reenen|Haut wäert et [reenen].|Сегодня будет дождь.
+reesen|Am Summer wëlle mir [reesen].|Летом мы хотим путешествовать.
+reservéieren|Ech [reservéieren] alles am Internet.|Я резервирую всё в интернете.
+roden|Ech [roden] och gutt Wanderweeër.|Я также рекомендую хорошие пешеходные тропы.
+ruffen|Da fuere ech mam Bus oder ech [ruffen] en Taxi.|Тогда я еду на автобусе или вызываю такси.
+sammelen|Mäi Jong wëll Timberen [sammelen].|Мой сын хочет собирать марки.
+sangen|Ech [sangen] an engem Chouer.|Я пою в хоре.
+schaffen|Jo, ech [schaffen] all Dag um Computer.|Да, я каждый день работаю за компьютером.
+schellen|Du muss zweemol [schellen].|Нужно позвонить в дверь дважды.
+schenken|Et mécht mech glécklech, wann ech eppes [schenken].|Я счастлив, когда что-то дарю.
+schlofen|D'Kanner mussen elo [schlofen].|Детям пора спать.
+schlëmm|Dat ass net [schlëmm].|Ничего страшного.
+schmaachen|Ech [schmaachen] ëmmer eppes Neies.|Я всегда пробую что-то новое.
+schneien|Haut kéint et [schneien].|Сегодня может пойти снег.
+schreiwen|Ech liesen Noriichten an ech [schreiwen] Mailen.|Я читаю новости и пишу письма.
+schwammen|Ech [schwammen] a leien an der Sonn.|Я плаваю и лежу на солнце.
+schwätzen|Ech [schwätzen] e bëssen Däitsch.|Я немного говорю по-немецки.
+schécken|Ech [schécken] all Dag vill Mailen.|Я каждый день отправляю много писем.
+schéngen|Muer soll d'Sonn [schéngen].|Завтра должно светить солнце.
+setzen|Ech [setzen] d'Kand op de Stull.|Я сажаю ребёнка на стул.
+shoppen|Gitt Dir gär [shoppen]?|Вы любите ходить по магазинам?
+sichen|Fir meng Mamm [sichen] ech eppes Schéines.|Для мамы я ищу что-то красивое.
+sinn|Mir [sinn] am Gaart.|Мы в саду.
+soen|Ech [soen] trotzdeem Merci an halen e.|Я всё равно говорю спасибо и оставляю его.
+sollen|Wat [sollen] ech maachen?|Что мне делать?
+spadséieren|Moies ginn ech gär [spadséieren].|Утром я люблю ходить на прогулку.
+spillen|Meng Kanner [spillen] gär um Strand.|Мои дети любят играть на пляже.
+spueren|Mir musse Geld [spueren].|Нам нужно экономить деньги.
+spullen|Ech [spullen] no dem Iessen.|Я мою посуду после еды.
+staubsaugen|Ech [staubsaugen] an ech botzen de Buedem.|Чаще всего я пылесошу и мою пол.
+stauen|Op der A6 [stauen] d'Autoen all Moien.|На A6 машины каждое утро стоят в пробке.
+stellen|Jo, ech [stellen] all Owend e Wecker.|Да, я каждый вечер завожу будильник.
+stoen|Mir [stoen] am Stau.|Мы стоим в пробке.
+strecken|Duerno [strecken] ech d'Kleeder.|Потом глажу одежду.
+studéieren|Meng Duechter wëll Medezin [studéieren].|Моя дочь хочет изучать медицину.
+stéieren|Ech wëll net [stéieren].|Не хочу мешать.
+sëtzen|Am Summer [sëtzen] ech gär dobaussen.|Летом я люблю сидеть на улице.
+tanken|Ech muss nach [tanken].|Мне ещё нужно заправиться.
+telefonéieren|Owes [telefonéieren] ech mat menger Famill.|Вечером я звоню своей семье.
+trainéieren|Ech [trainéieren] dräi Mol d'Woch.|Я тренируюсь три раза в неделю.
+treffen|Mir [treffen] eis um aacht.|Мы встречаемся в восемь.
+ufänken|Wéini kënne mir [ufänken]?|Когда мы можем начать?
+ukucken|Doheem kann ech alles roueg [ukucken].|Дома я могу всё спокойно рассмотреть.
+umellen|Ech muss mech op der Gemeng [umellen].|Мне нужно зарегистрироваться в коммуне.
+undoen|Ech kann [undoen], wat ech wëll.|Я могу надевать что хочу.
+unzéien|Dat ass genuch fir dusche an [unzéien].|Этого достаточно, чтобы принять душ и одеться.
+verbréngen|Mir wëllen de Weekend um Land [verbréngen].|Мы хотим провести выходные за городом.
+verdéngen|Ech [verdéngen] genuch fir meng Famill.|Я зарабатываю достаточно для своей семьи.
+vergiessen|Ech [vergiessen] ni mäi Portmonni.|Я никогда не забываю кошелёк.
+verloossen|Op hien kann ech mech ëmmer [verloossen].|На него я всегда могу положиться.
+vermëssen|Ech wäert dech [vermëssen].|Я буду по тебе скучать.
+verstoen|Ech kann dech net [verstoen].|Я тебя не понимаю.
+vertrauen|Ech [vertrauen] him ganz gutt.|Я ему полностью доверяю.
+virbereeden|Ech muss mech op den Examen [virbereeden].|Мне нужно подготовиться к экзамену.
+virliesen|Owes wëll ech de Kanner eppes [virliesen].|Вечером я хочу почитать детям вслух.
+virstellen|Kënnt Dir Iech d'Liewen ouni Internet [virstellen]?|Вы можете представить себе жизнь без интернета?
+viru|Ech sinn [viru] véier Joer heihinner komm.|Я приехал сюда четыре года назад.
+waarden|Dofir [waarden] ech ëmmer op de Weekend.|Поэтому я всегда жду выходных.
+wanderen|Een kann [wanderen], Vëlo fueren an d'Natur genéissen.|Можно ходить в походы, кататься на велосипеде и наслаждаться природой.
+weiderbilden|Ech wëll mech [weiderbilden].|Я хочу повысить квалификацию.
+weisen|Ech [weisen] d'Fotoen gär.|Я люблю показывать фотографии.
+widderhuelen|Ech liesen a [widderhuelen] déi nei Wierder.|Я читаю и повторяю новые слова.
+wielen|Da kann ech mäin Tempo selwer [wielen].|Тогда я могу сам выбирать свой темп.
+wiesselen|Ech wëll d'Aarbecht [wiesselen].|Я хочу сменить работу.
+wunnen|Mir [wunnen] zu Lëtzebuerg.|Мы живём в Люксембурге.
+wëllen|Mir [wëllen] eppes iessen.|Мы хотим что-нибудь поесть.
+wënschen|Frot Dir d'Leit, wat si sech [wënschen]?|Вы спрашиваете людей, что они хотят?
+wëssen|Ech wëll dat [wëssen].|Я хочу это знать.
+zortéieren|Mir [zortéieren] de Plastik an de Pabeier.|Мы сортируем пластик и бумагу.
+zéien|Dann dusche ech mech an [zéien] mech un.|Потом я принимаю душ и одеваюсь.
+änneren|Dat kann ech net [änneren].|Я не могу это изменить.
+ëffentlech|Ech fuere mam [ëffentlechen] Transport.|Я езжу на общественном транспорте.
+ëmtauschen|Ech wëll dës Schong [ëmtauschen].|Я хочу обменять эти ботинки.
+üben|Ech [üben] all Dag, an et geet besser.|Я упражняюсь каждый день, и становится лучше.
+d'Noriichten|Moies kucken ech d'[Noriichten] a meng Mailen.|Утром я смотрю новости и проверяю почту.
+wichteg|Mäin Telefon ass ganz [wichteg] fir mech.|Телефон очень важен для меня.
+menger|Owes telefonéieren ech mat [menger] Famill.|Вечером я звоню своей семье.
+meeschten|Wat fir Medien benotzt Dir am [meeschten]?|Какими СМИ вы пользуетесь больше всего?
+Spaass|Dat mécht mir [Spaass].|Это доставляет мне удовольствие.`;
+const DICT_RAW=`aacht|восемь
+aalt|старый
+Aarbechtsdag|рабочий день
+Aarbechtszëmmer|рабочая комната / кабинет
+aarm|бедный
+Accessoiren|аксессуары
+Adler|орёл
+adress|адрес
+akafe|покупать
+Akafszenter|торговый центр
+Akeef|покупки
+Aktiounen|акции / скидки
+Aktivitéit|занятие / активность
+Aktivitéiten|занятия, активности
+Al|старый
+Album|альбом
+ale|старый
+Alkohol|алкоголь
+All|каждый; все
+Alldag|повседневная жизнь
+allem|(virun allem — прежде всего)
+alles|всё
+Als|как / будучи
+am|в (лете и т.п.)
+an|и / в
+aner|другие
+anere|другой
+anerer|другой (ж.р., дат.)
+anescht|иначе / по-другому
+Angscht|страх
+Anna|Анна (имя)
+Apdikt|аптека
+Apel|яблоко
+app|приложение
+Apparater|приборы / техника
+Appartement|квартира
+apps|приложения
+ass|есть / является
+Audiobicher|аудиокниги
+Auer|час (время)
+Aufgaben|задачи
+aus|из
+Ausbildung|образование
+Ausfluch|поездка / вылазка
+ausgelies|дочитал(а)
+ausgerout|отдыхал
+Aussprooch|произношение
+Ausstellung|выставка
+Auswiel|выбор
+Auto|машина
+Autoen|машины
+awer|однако / же
+Bad|ванная
+bal|почти
+Ball|мяч
+Bam|дерево, ёлка
+Band|лента / повязка
+Bank|банк
+Bar|бар
+Baseng|бассейн
+Bauaarbecht|строительные работы
+Bauplaz|стройка
+baussen|наружу (no baussen — на улицу)
+bedeckt|облачно
+bedeit|означает
+Beem|деревья
+Bei|у
+bekannt|известный
+bekannten|известный
+benotze|использую
+Benotzt|пользуетесь
+bequeem|удобный
+Bericht|отчёт
+Berichter|отчёты
+Beruff|профессия
+Beruffer|профессии
+beréiert|тронула / тронуло
+Bescheed|в курсе
+beschte|лучший
+beschten|лучше всего
+beschäftegt|занятый / оживлённый
+beschäftegte|оживлённый / занятый
+besiche|навещать
+besicht|посещал / посетил
+Besonnesch|особенно
+besser|лучше
+bestallt|заказано / заказал
+bestelle|заказываю
+bestellt|заказываете
+bestuet|в браке
+Besuch|визит
+Bett|кровать
+beweegt|двигается
+Bewerbung|заявление о приёме на работу
+bezuele|плачу
+bezuelt|оплачивает
+Bibliothéik|библиотека
+Bicher|книги
+Bicherbuttek|книжный магазин
+Bierg|холм / гора
+Bierger|горы
+Bijouen|украшения
+Bild|картина, рисунок
+Bildschierm|экран
+Biller|картины
+bio|био / органический
+bis|до
+Blat|лист (бумаги)
+bleift|остаётесь / поддерживаете
+bleiwe|остаёмся
+Blieder|листья
+bliwwen|остался (прич.)
+blo|синий
+bloe|синий
+Bloen|шорты
+blot|синий / голубой
+Blummen|цветы
+Blusen|блузки / кофты
+blénkt|светится / блестит
+Blëtzer|молнии
+blëtzt|сверкает молния
+Bong|подарочный сертификат, талон
+Botz|уборка
+Botzmëttel|чистящее средство
+Botzplang|план уборки
+botzt|убираете / моете
+Box|брюки
+Boxen|брюки
+brauch|нужно / нуждаюсь
+brauche|нуждаюсь, мне нужно
+braucht|нужен / нуждаетесь
+breet|широкий
+bridder|братья
+brong|коричневый
+brongem|коричневый
+Brout|хлеб
+brudder|брат
+bruecht|принёс
+Bréissel|Брюссель
+Bréitchen|булочка
+Bréiwer|письма
+Bréngt|приносите / берёте с собой
+Brëll|очки
+Buch|книга
+Buedem|пол
+Buedzëmmer|ванная комната
+Buergen|замки
+Bus|автобус
+Bushaltestell|автобусная остановка
+Bussen|автобусы
+Buttek|магазин
+Butteker|магазины
+Bäcker|пекарь / булочная
+Bäckereien|пекарни
+Bänk|скамейка
+Béid|оба
+béide|оба / обоими
+bëlleg|дешёвый
+Bësch|лес
+bësse|немного
+Büro|офис
+Café|кафе
+Caféen|кафе (мн.ч.)
+Chef|начальник
+Chimie|химия
+China|Китай
+Chrëschtdag|Рождество
+Clienten|клиенты
+Coiffeur|парикмахерская
+Comedie|комедия
+Comedien|комедии
+Computer|компьютер
+Computeren|компьютеры
+Concert|концерт
+Congé|отпуск
+Cours|урок
+Croissanten|круассаны
+Crèche|детский сад
+Crèchen|детские сады
+Crème|крем
+D'Grammatik|грамматика
+D'Kanéngchen|кролик
+D'Stadion|стадион
+D'Stëmmung|настроение, атмосфера
+D'Temperaturen|температура
+D'Trap|лестница
+Daach|крыша
+dacksten|чаще всего
+Dag|день
+Dammen|дамы, служащие
+Dann|тогда
+danzt|танцует
+dass|что
+datt|что
+Datum|дата
+dauert|длится
+de|определённый артикль (м. р.)
+decidéiere|решаем, решать
+decidéiert|решает
+dee|тот; который
+Deeg|дни
+Deeler|части / участки
+deelt|делите, разделяете
+deem|тот, этот (дат.)
+Deemools|тогда
+deen|который
+deet|делает; болит
+Dekoratioun|украшение / гирлянда
+der|в (артикль)
+derbäi|при этом / к этому
+derfir|для этого
+Dessert|десерт
+Dicher|салфетки
+Diech|крыши
+Diechter|крыши
+Dir|вы (вежливое)
+direkt|сразу
+Do|там
+dobannen|в помещении
+dobausse|на улице / снаружи
+dobaussen|на улице, снаружи
+dobäi|при себе / с собой
+documentairen|документальные фильмы
+Dofir|поэтому
+dohin|туда
+dohinner|туда
+Dokter|врач
+Dokteren|врачи
+domat|этим, с этим
+donkel|тёмный
+donkelblo|тёмно-синий
+donkele|тёмный
+donkelgréng|тёмно-зелёный
+donkelroude|тёмно-красный
+donkelrout|тёмно-красный
+donkelt|тёмный
+donnert|гремит гром
+Donnerwieder|гроза
+doran|в этом, в ней
+doraus|из этого
+doriwwer|этому / об этом
+Dorop|этому / этого
+dorun|над этим, над ним
+dot|делаете; надеваете
+dozou|при этом
+Dram|мечта
+draus|из этого
+Dreck|мусор
+dreckeg|грязный
+Dreckskëscht|мусорное ведро
+Dresscode|дресс-код
+droe|носить
+drot|носите (вы)
+dräi|три
+dräimol|трижды
+Dréchefudder|сухой корм
+dréchen|сухой / сухо
+dréit|носит
+drénke|пьём
+drénkt|пьёте
+drësseg|тридцать
+Duechter|дочь
+duerch|через / сквозь
+Duerf|деревня
+Duerno|потом
+Dusch|душ
+dusche|принимать душ
+dvd|DVD
+däerf|могу, разрешено
+däischter|тёмный
+Däitsch|немецкий
+Däitschen|немецком (форма)
+Däitschland|Германия
+déi|те
+déif|глубокий / глубоко
+dënn|тонкий
+dënnt|тонкий
+Dëppe|горшки / баночки
+Dëppen|горшки
+Dës|эта, эти
+Dësch|стол
+Dëscher|столы
+dëse|этот
+dësem|этой, этому
+dëser|этой
+dëst|это
+Ech|я
+Ecker|углы
+Ee|яйцо
+eege|собственный
+eelef|одиннадцать
+eelsten|самый старший
+eemol|один раз
+Een|один
+eenzege|единственный
+eescht|серьёзный
+Eeër|яйца
+eidel|пустой
+einfach|просто / легко
+einfacht|простой
+Eis|наши
+eise|нашими
+eist|наше
+Ekipement|снаряжение
+Ekonomie|экономика
+Ekonomist|экономист
+elektronesch|электронные
+eleng|один / в одиночку
+Elo|теперь
+eltere|родители
+emol|разок, как-нибудь
+en|он, его
+Energie|энергия
+eng|одна / один
+enge|каких
+engem|одному (форма)
+enger|одной
+Englesch|английский
+enk|узкий / тесный
+Enn|конец
+entdecke|открываю / исследую
+entspaant|расслабленный
+eppes|что-то
+eraus|наружу / в свет
+Erfarung|опыт
+eriwwer|(eriwwer sinn — закончиться / пройти)
+erkläert|объясняет
+Erkältung|простуда
+Ernierung|питание
+erof|вниз
+Erwuessener|взрослые
+erzielt|рассказал (прич.)
+eréischt|только тогда, лишь
+erëm|снова
+erënnert|напоминает
+Esch|Эш (город)
+Et|оно / это
+Euro|евро
+ewech|прочь
+Faarf|цвет
+Faart|поездка
+Faarwe|цвета
+faarweg|разноцветный
+Fach|предмет
+faire|справедливый
+falsche|неправильный
+Famill|семья
+Familljefoto|семейное фото
+fanne|нахожу / считаю
+Fannt|находите
+Fantasie|фантазия
+fantastesch|фантастический
+Feeler|ошибки
+feelt|не хватает
+Feier|праздник, торжество
+feierdeeg|праздники / праздничные дни
+feiere|празднуем / праздновать
+Feierowend|конец рабочего дня
+feiert|празднуете
+Fest|праздник
+feste|праздники
+Fester|праздники
+fiddere|кормлю
+fiddert|кормите
+Fiels|скала
+fille|чувствую
+fillt|чувствуете
+Film|фильм
+Filmer|фильмы
+fir|для
+Firma|фирма / компания
+Firwat|почему
+fit|в форме
+Fleesch|мясо
+Fligeren|самолёты
+Flilleken|крылья
+Flitt|летаете
+flott|классный / здоровский
+flotte|приятный, весёлый
+Floumaart|блошиный рынок
+Fluch|рейс / полёт
+Flug|перелёт, рейс
+Fläsch|бутылка
+Fläschen|бутылки
+fléckt|чинит / чините
+fofzeg|пятьдесят
+fofzéng|пятнадцать
+fonnt|нашёл / показался
+Formatiounen|курсы / тренинги
+Forschetten|вилки
+fort|прочь / уезжать
+Foto|фотография
+Fotoen|фотографии
+fotograféiere|фотографирую
+fotograféiert|фотографировал (прош.)
+Fouss|нога; пешком
+foussball|футбол
+Fra|женщина
+Fraen|женщины
+Frankräich|Франция
+Franséisch|французский
+Freed|радость
+Freet|радуетесь (Freet Dir Iech)
+freeë|радуются / радоваться
+Friemsproochen|иностранные языки
+Frigo|холодильник
+froe|спрашиваю
+frot|спрашиваете
+frou|рад
+fräi|свободный
+fräien|свободный (форма)
+Fräizäit|свободное время
+fréi|рано
+Fréier|раньше
+Fréijoer|весна
+Frënd|друг
+frëndlech|дружелюбный
+frëndschaft|дружба
+Frënn|друзья
+frësch|свежий
+frëscher|свежий
+frëscht|свежее
+frësst|ест (о животном)
+Fudder|корм
+fuere|езжу
+fuert|едете
+funktionéiert|работает
+Fussball|футбол
+futti|сломанный
+fäerdeg|готовый
+fänkt|начинается
+Féiwer|температура, жар
+fëmmt|курите
+fënnef|пять
+fënnt|находит
+Fënster|окно
+Fënsteren|окна
+Fësch|рыба
+Fürerschäin|водительские права
+gaang|пошло / получилось
+gaangen|ходил / пошёл
+Gaart|сад
+ganz|очень
+ganze|целый
+Ganzen|весь / целый
+ganzer|всей / целой
+Gare|вокзал
+Gebai|здание
+Gebaier|здания
+gebastelt|мастерил(а) поделки
+gebotzt|убрал (прич.)
+gebraucht|нуждался (прич.)
+Gebuertsdag|день рождения
+Gebuertsdagsfeier|день рождения (праздник)
+Gebuertsdeeg|дни рождения
+gedauert|длилась
+gedoen|сделал (huet wéi gedoen — болело)
+gedroen|носил / надел (Perfekt от droen)
+gedronk|пил / выпил (прич.)
+gedréckt|печатный / бумажный
+Gedrénks|напитки
+geet|идёт
+gefall|понравилось
+gefeiert|праздновал (прич.)
+gefillt|чувствовал себя (прич.)
+geflunn|летал
+gefléckt|починил
+gefreet|обрадовался
+gefuer|ехал
+gefält|нравится
+gefëmmt|курил (прош.)
+gehat|имел
+geholl|взял
+gehollef|помог (прош.)
+gehéiert|принадлежит
+gekacht|готовил
+gekuckt|смотрел (прич.)
+gelaacht|смеялся
+gelaf|бежали, бегали
+gelauschtert|слушал
+Geld|деньги
+gelieft|жил
+gelies|читал
+geléiert|учил (прош.)
+gemaach|сделал
+Gemeng|коммуна
+gemengt|имел в виду
+gemittlech|уютно
+gemoolt|рисовал (прош.)
+Geméis|овощи
+genau|точно
+genee|точно
+genren|жанры
+genuch|достаточно
+gepasst|подошло / подошли
+geplënnert|переехал
+gerascht|отдыхал (прич.)
+gereent|шёл дождь
+gesammelt|накопил / собрал
+geschafft|работал (прич.)
+geschenkt|подарил (причастие)
+Geschicht|история
+Geschichte|истории
+Geschir|посуда
+geschlof|спал
+geschmaacht|понравился на вкус (прич.)
+geschriwwen|писал
+geschwat|говорил
+geschwommen|плавал / купался
+geschwënn|скоро
+Geschwëster|братья и сёстры
+Geschäft|магазин
+Geschäfter|магазины
+Geschäftsrees|командировка
+Geschäftsreesen|командировки
+gesicht|искал
+Gesitt|видите
+gesond|здоровый / полезный
+Gesondes|здоровое
+Gesondheet|здоровье
+gesongen|пел(а)
+gesot|сказал
+gespillt|играл
+Gespréich|разговор / собеседование
+gestaubsaugt|пропылесосил
+gestrach|покрасил
+gesäit|видит
+getraff|встретил (прош.)
+gewaart|ждал
+gewielt|выбрал
+gewiesselt|поменял
+Gewunnechten|привычки
+gewunnt|жил
+geännert|изменил
+gi|идём / едем (ginn)
+giel|жёлтый
+giele|жёлтый
+giess|ел / поел
+gitt|ходите
+Gittar|гитара
+Glas|стекло
+Glasdaach|стеклянная крыша
+glécklech|счастливый
+gouf|было, имелось
+goung|шло (речь шла)
+Grad|градус
+Grammatik|грамматика
+Gras|трава
+grillt|жарите на гриле
+gro|серый
+groe|серый
+Grompere|картошка
+Gromperekichelcher|картофельные драники
+Gromperen|картофель
+Grond|причина, повод
+Grouss|большой
+grousse|большой
+grousser|большой
+grousst|большой (скл.)
+Grupp|группа
+Gréisst|размер
+Gréng|зелёный
+grénge|зелёный
+grénger|зелёный
+gudde|хороший
+Guddes|вкусное, хорошее
+guer|(guer net — совсем не)
+gutt|хороший
+gär|охотно
+gären|охотно
+géif|бы (условное)
+géift|бы дали
+Géigend|район, окрестности
+géint|против
+gëllene|золотой
+gëtt|есть, имеется
+haart|усердно / упорно
+Haiser|дома
+hallef|половина
+hallwer|половина
+Hals|горло
+Hand|рука
+Handduch|полотенце
+Handgemaachtes|сделанное вручную
+Handwierker|мастер / ремонтник
+Handy|телефон
+hannen|сзади
+hannendrun|позади / сзади
+Hannergrond|задний план
+hat|имел, был
+Haus|дом
+Hausaarbecht|работа по дому
+Hausaufgaben|домашнее задание
+Hausdokter|терапевт, семейный врач
+Hausdéier|домашнее животное
+Hausdéieren|домашние животные
+Haut|сегодня
+heem|домой
+Heemecht|родина
+Heemechtsland|родная страна
+heescht|зовут
+Heft|тетрадь
+hei|здесь
+heihi|сюда
+hell|светлый
+hellblot|светло-голубой
+hellbrong|светло-коричневый
+hellbrongem|светло-коричневый
+hellen|светлый
+Helm|каска / шлем
+Hie|он
+Hiem|рубашка
+Hiemer|рубашки
+Hierscht|осень
+him|ним / ему
+Himmel|небо
+hin|туда
+hinnen|им
+hir|неё
+hire|их, её
+hirem|её
+Hobby|хобби
+Hobbyen|хобби (мн.)
+Hochzäit|свадьба
+Hoer|шерсть / волосы
+Holz|дерево
+Holzdësch|деревянный стол
+Hond|собака
+hongereg|голодный
+honnert|сто
+Hotel|отель
+Houscht|кашель
+hu|имею
+huele|беру
+huelt|берёте
+huet|имеет
+Hutt|имеете
+Häerz|сердце
+hält|держит
+Händschen|перчатки
+hänkt|зависит
+Hänn|руки
+hätt|хотел бы иметь
+héich|высокий
+héiert|слышит
+héije|высокий
+hëllef|помощь
+hëllefe|помогают / помогать
+hëlleft|помогает
+Hënn|собаки
+Iddi|идея
+Iddien|идеи
+Iech|вам
+ier|прежде чем
+iesse|ем
+Iesst|едите
+immens|очень, безмерно
+Informatioun|информация
+Informatiounen|информация
+informéiert|узнаёте, получаете информацию
+Insel|остров
+Instrument|музыкальный инструмент
+interessant|интересный
+Interessantes|что-то интересное
+interesséiere|интересуюсь
+interesséiert|интересовал / интересует
+Interieur|интерьер / вид внутри
+Internet|интернет
+invitéiert|пригласил(а)
+italieenesch|итальянская
+Italien|Италия
+iwwer|о / про
+iwwerall|везде
+Iwwerstonnen|сверхурочные
+Jackett|куртка
+Jazz|джаз
+Jeans|джинсы
+Jidderee|каждый
+Jo|да
+Joer|год
+Joghurt|йогурт
+Jong|сын
+jonk|молодой
+jonke|молодой
+Joreszäit|время года
+Joreszäite|времена года
+Journal|новости
+Juli|июль
+Juppen|юбки
+just|только
+Kaaft|покупаете
+Kaart|карта
+Kaarten|карты
+Kabes|капуста
+Kach|повар
+kache|готовим
+Kachelen|плитка
+Kachplack|плита
+kacht|готовите
+Kaddo|подарок
+Kaddoe|подарки
+Kader|рамка
+kaf|купил
+kafe|покупаю
+Kaffi|кофе
+Kaffien|кофе (чашки)
+kal|холодный
+Kalenner|календарь
+Kamera|фотоаппарат
+Kaméidi|шум
+Kand|ребёнок
+Kandheet|детство
+kann|может / могу
+Kannapee|диван
+Kanner|дети
+Kantin|столовая
+Kanéngchen|кролик
+Kap|кепка
+Kapitel|глава
+Kapp|голова
+Karriär|карьера
+Kascht|стоит
+Kaz|кошка
+Kazen|кошки
+kee|никакой
+Keller|подвал
+keng|никакой / ни одной
+kenne|знать (познакомиться)
+Kennt|знаете
+Kichelcher|печенье
+Kichen|кухня
+Kierper|тело
+kill|прохладный
+Kino|кино
+Klameren|прищепки
+klappt|получится
+Klass|класс / урок
+klassesch|классический
+Klassiker|классика / классики
+Kleed|платье / одеяние
+Kleeder|одежда
+Kleedung|одежда
+Kleedungsstéck|предмет одежды
+Kleng|маленький
+klenge|маленький
+klengen|маленьком
+klenger|маленькой
+Klenges|маленькое / небольшое
+klengt|маленький
+kloer|ясно
+Kniddele|клёцки
+Koffer|чемодан
+Kolleegen|коллеги
+Kolleegin|коллега (женщина)
+Kollegen|коллеги
+komm|пришёл, приехал
+Kommandoen|команды
+Kommissiounen|покупки (продукты)
+kommt|приходите / добираетесь
+konnt|мог
+konnten|могли
+Konscht|искусство
+Konschtwierk|произведение искусства
+Kontakt|контакт
+Kontroll|осмотр, проверка
+Koppel|пара
+Kostüm|костюм
+koum|пришёл
+krank|больной
+Krankeschäin|больничный лист
+Krawatt|галстук
+kreativ|креативный
+Kreatives|креативное (что-то)
+Kreativitéit|креативность
+Krimi|детектив
+Krimien|детективы
+kritt|получил
+kréie|получают
+Kuch|пирог / торт
+kucke|смотрю
+Kuckt|смотрите
+Kuerf|корзина
+kuerz|короткий
+kuerze|короткий
+kuerzem|недавно (viru kuerzem)
+Kultur|культура
+Kulturen|культуры
+Käerze|свечи
+Kéier|раз
+kéint|мог бы (безлично: могло бы)
+Kéis|сыр
+këmmert|заботится
+kënne|могут
+Kënnt|можете
+Kënschtler|художники, деятели искусства
+Këscht|ящик
+Këschte|ящики
+laange|длинный
+laangen|долгого
+laanger|долгий / долгой
+Lach|яма
+lafe|бегаю
+Land|страна
+Landschaft|пейзаж
+Landschaften|пейзажи
+langweileg|скучно / скучный
+Laptop|ноутбук
+lass|трогаться (fueren lass)
+lauschtere|слушаю
+Lauschtert|слушаете
+laut|шумный
+leider|к сожалению
+leschte|последний
+leschten|последний, прошлый
+leschter|последней
+Liblingsdessert|любимый десерт
+Liblingsfilm|любимый фильм
+Liblingsmark|любимый бренд
+Liblingsschauspiller|любимый актёр
+liblingswebsäit|любимый сайт
+Lieder|кожа
+lieft|живёте (вести образ жизни)
+liese|читаю
+Liest|читаете
+liewe|живут / жить
+Lift|лифт
+Liicht|свет
+liichten|лёгкий
+Liichtes|лёгкое
+Linnen|линии
+Liter|литр
+Loft|воздух
+lokaalt|местную
+Loscht|желание, охота
+lount|снимаете (в аренду)
+lues|медленно
+Luucht|свет
+Luuchte|огни / фонари
+läit|лежит
+Länner|страны
+léiere|учу
+Léiert|учите
+léif|приятный, милый
+léifst|любимые / самые любимые
+léifste|любимый
+léifsten|больше всего
+Léift|любовь
+léine|беру взаймы / одалживаю
+Léint|одалживаете / берёте
+léise|решаем
+Léisung|решение
+Léisungen|решения
+léiwer|предпочтительнее
+Léngt|поводок
+Lénks|слева
+Lëscht|список
+lëschteg|весело
+Lëtzebuerg|Люксембург
+Lëtzebuerger|люксембургский / люксембуржцы
+Lëtzebuergesch|люксембургский
+lëtzebuergesche|люксембургский
+lëtzebuergescht|люксембургское
+maach|делаю
+maache|делаю
+maacht|делаете
+Maart|рынок
+mail|почта
+Mail-Adress|адрес электронной почты
+mam|на (с определённым артиклем)
+Mamm|мама
+Mammesprooch|родной язык
+Mann|муж, мужчина
+Mann-Dokter|врач-мужчина
+manner|меньше
+Mantel|пальто
+Manéier|способ, манера
+Marathon|марафон
+marc|Марк (имя)
+Mark|бренд / марка
+Maschinn|машина
+Maschinnen|машины
+mat|с
+Match|матч
+Matcher|матчи
+mateneen|друг с другом
+matgeholl|взял с собой
+Mauer|стена
+Maueren|стены
+Max|Макс (кличка)
+mech|мне / меня / себя
+Medien|СМИ
+Medikament|лекарство
+Medikamenter|лекарства
+Mee|но
+Meedche|девочка
+meescht|больше всего
+meeschte|больше всего
+Member|член / участник
+Meng|моя
+menge|моими
+mengem|моим
+Merci|спасибо
+Metall|металл
+Meteo|прогноз погоды
+Metzlerei|мясная лавка
+midd|усталый / сонный
+Mier|море
+Minutten|минуты
+mir|нам, мы
+Miwwel|мебель
+Miwwelen|мебель
+modern|современный
+modernen|современный
+moderner|современного
+Moien|утро
+Moies|утром
+Moiesiessen|завтрак
+Mol|раз
+mole|рисую, рисовать
+Moler|художник
+Molerei|живопись
+molt|рисуете
+Moment|момент
+Momenter|моменты
+Moossen|мера (mat Moossen — в меру)
+Moskau|Москва
+Moud|мода
+Mount|месяц
+Muer|завтра
+mueres|по утрам
+Munchmol|иногда
+Musek|музыка
+Museker|музыкант
+muss|должен / должна
+Musst|должны
+Musée|музей
+Muséeën|музеи
+Mutz|шапка
+mä|но
+Mäercher|сказки
+Mäerder|убийца
+Mäi|мой
+Männer|мужчины
+Mäntel|пальто
+mécht|делает
+mécht mech|делает меня
+méi|более
+méiglech|возможно
+Méindeg|понедельник
+mëll|мягкий
+Mëllech|молоко
+Mënsch|человек
+mënschleche|человеческий
+mënschlecht|человеческий
+Mënzen|монеты
+Mëschling|метис
+Mëschung|сочетание / баланс
+Mëtt|середина
+Mëtteg|обед / полдень
+Mëttes|днём
+Mëttespaus|обеденный перерыв
+Mëttwoch|среда
+naass|мокрый
+nach|ещё
+Natur|природа
+Nee|нет
+nees|снова / опять
+Nei|новые
+neie|новый
+neier|новой
+Neies|новое
+neiste|новейший (um neiste Stand)
+neit|новый
+Neits|что-то новое
+nervös|нервный
+net|не
+Netzwierker|сети
+ni|никогда
+niddereg|низкий
+nidderegt|низкий
+niddreg|низкий
+niddregt|низкий
+nieft|рядом с / около
+niewent|рядом
+Niewestrooss|второстепенная улица
+no|близко / после
+nobäi|рядом
+Nodeeler|недостатки
+nom|после (с артиклем)
+nooste|ближайший
+Noper|сосед
+Noperen|соседи
+Noperschaft|соседство
+normal|обычный / нормальный
+normalen|обычный
+normaler|обычной
+normalerweis|обычно
+Nuddelen|макароны
+Nuecht|ночь
+nuets|ночью
+null|ноль
+Numm|имя
+nächste|следующий
+näischt|ничего
+néideg|нужный, необходимый
+néng|девять
+Nëmme|только
+nëtzlech|полезный
+och|тоже / также
+oder|или
+of|от (часть глагола ofhänken — зависеть)
+offiziell|официальный
+oft|часто
+Olympesch|олимпийские
+onbequeem|неудобный
+ongesond|вредный, нездоровый
+online|онлайн
+onschaarf|размытый / нерезкий
+op|открыт; на
+opgeraumt|прибрал / прибрались
+oppen|открытый
+orange|оранжевый
+organiséiert|организуете
+organiséierte|организованный
+Ouni|без
+Owend|вечер
+Owendiessen|ужин
+Owes|вечером
+Paangecher|блины
+Pabeier|бумага
+Pabeieren|документы
+packt|кладёте
+Pai|зарплата
+Papp|отец
+Paris|Париж
+Park|парк
+Parking|парковка / паркинг
+Parkplazen|парковочные места
+parkt|паркуетесь
+Paräis|Париж
+passt|подходит
+passéiert|случается
+Paus|перерыв
+Pensioun|пенсия
+perfekt|идеально
+Persoun|человек, персона
+perséinlech|личный
+perséinleche|личный (склон.)
+Piano|пианино
+Picknick|пикник
+Pinselen|кисти
+Placken|пластинки
+Plakat|плакат
+Plang|план
+plangt|планируете
+Planzen|растения
+Plastik|пластик
+Platen|блюда
+Plaz|место
+Plazen|места
+Pläng|планы
+Plëséier|удовольствие
+Pol|столб
+Popmusek|поп-музыка
+Portioun|порция
+Portmonni|кошелёк
+Portugal|Португалия
+Post|почта
+Poussette|коляска
+Prabbeli|зонт
+Praxis|кабинет (врача)
+prett|готовый
+privat|личный
+pro|в (за)
+Problemer|проблемы
+probéiere|пробую
+Probéiert|примеряете
+Produkter|продукты
+professionell|профессионально
+Proff|преподаватель
+propper|чистый
+Präis|цена
+Präisser|цены
+puer|несколько
+Pullover|пуловер / свитер
+Päckelchen|посылка
+pünktlech|пунктуально
+Quai|платформа / перрон
+Qualitéit|качество
+Quartier|квартал, район
+Radio|радио
+Rass|порода
+raume|убираем (opraumen — убирать)
+reecht|хватает
+Reegelen|правила
+reegelméisseg|регулярно
+Reen|дождь
+Reendag|дождливый день
+Reent|идёт дождь
+Rees|поездка
+reese|путешествую
+Reest|путешествуете
+Regaler|стеллажи / полки
+Rei|ряд
+Reklamm|реклама
+relativ|довольно / относительно
+Responsabilitéit|ответственность
+Restaurant|ресторан
+Restauranten|рестораны
+Reuniounen|совещания
+Rezept|рецепт
+Rezepter|рецепты
+richteg|по-настоящему; правильно
+richtege|настоящий
+Riets|справа
+Rimm|ремень
+Rodange|Роданж (имя)
+Roll|роль
+Roman|роман
+Romaner|романы
+ronderëm|вокруг
+ronn|около
+rosa|розовый
+Rou|покой
+roude|красный
+roueg|спокойный / тихий
+rouegen|спокойный
+rout|красный
+ruffe|звоним (uruffen)
+Rulloen|жалюзи
+Russesch|русский
+russesche|русские (прил.)
+Russland|Россия
+Rutschen|горки
+räich|богатый
+Saach|вещь
+Saache|вещи
+Sailen|колонны
+Sammlung|коллекция
+Samschdeg|суббота
+Samschdes|по субботам
+Sand|песок
+Schaf|шкаф
+schaffe|работаю
+schafft|работает
+Schal|шарф
+Schauspiller|актёры
+schellt|звонит (о будильнике)
+schenke|дарю
+schenkt|дарите
+Schi|лыжи
+schlecht|плохой
+schlechtem|плохую (форма)
+Schlof|сон
+schlofe|сплю
+Schlofzëmmer|спальня
+schléift|спите
+schmaache|нравятся на вкус (мн.)
+schmaacht|быть на вкус / нравиться
+Schmier|бутерброд
+Schneit|идёт снег (schneit)
+Schnouer|верёвка
+Schnéi|снег
+scho|уже
+Schockelaskuch|шоколадный торт
+Schong|обувь, кроссовки
+Schoul|школа
+Schoulen|школы
+schreift|пишете
+schreiwe|пишу
+Schrëft|надпись / шрифт
+Schrëftsteller|писатель
+Schrëtt|шаг
+schwaarz|чёрный
+schwaarz-wäiss|чёрно-белый
+schwaarze|чёрный
+schwaarzer|чёрный
+schwamme|плаваем
+Schwämm|бассейн
+schwätze|говорим
+schwätzt|говорите
+schwéier|трудный
+schwéiere|трудные / тяжёлые
+schwéierer|трудной
+schwéiert|тяжёлый
+Schwëster|сестра
+schéi|красивые
+schéin|красивый
+schéine|красивый
+schéinen|красивый, прекрасный
+Schéines|красивое
+schéinste|самая красивая
+schéint|красивый
+schéngt|светит
+Schëld|табличка / вывеска
+Schëlder|вывески / таблички
+se|она / они
+sech|себя
+sechs|шесть
+seelen|редко
+selwecht|одни и те же / такой же
+selwechter|тот же самый
+selwer|сам
+seng|свой / его
+sengem|своём
+Serie|сериал
+Serien|сериалы
+setzt|добавляет / ставит
+shoppe|шопинг
+Shorten|шорты
+si|они / есть
+sicht|выбирает / ищет
+Sidd|вы есть
+siwe|семь
+Skelett|скелет
+Skulptur|скульптура
+soe|говорю
+Solden|распродажи
+soll|должен
+Sonn|солнце
+Sonndeg|воскресенье
+Sonndes|по воскресеньям
+Sonnebrëll|солнечные очки
+sonneg|солнечно
+Soss|иначе
+Sou|так
+souguer|даже
+sozial|социальный
+soziale|социальные
+spadséiere|гуляем
+spadséiert|гулял (прич.)
+spannend|увлекательный
+spannende|захватывающий
+Spezialitéit|деликатес, местное лакомство
+Spezialitéiten|фирменные блюда
+speziell|специальный
+Spigel|зеркало
+Spill|игра
+spille|играем
+Spiller|игры
+Spillplaz|детская площадка
+Spillsaachen|игрушки
+spillt|играет
+Sport|спорт
+Sportaarten|виды спорта
+Sportler|спортсмен
+Sportsevenement|спортивное мероприятие
+Sportsevenementer|спортивные мероприятия
+Sprooch|язык
+Sprooche|языки
+Sproochentest|языковой экзамен
+Spuenien|Испания
+spuert|экономит
+Spullmaschinn|посудомоечная машина
+spéider|позже
+spéit|поздно
+staark|сильный / плотный
+Stack|этаж
+Stad|город
+Stadion|стадион
+Stand|уровень / состояние
+Stau|пробка
+Staubsauger|пылесос
+staut|образуется пробка
+Steen|камень
+Stied|города
+Still|стулья
+stinn|встаю
+Stitt|стоите
+Stoff|ткань
+stolz|гордый
+Stonn|час
+Stonnen|часы
+Stot|уборка / домашнее хозяйство
+Strand|пляж
+Streckeisen|утюг
+streckt|гладите
+Stress|стресс
+stresseg|напряжённый
+Strooss|улица
+Stroosseluuchten|уличные фонари
+Stroossemaart|уличный рынок
+Struktur|конструкция
+Sträich|кусты
+Sträifen|полоски
+Student|студент
+Studie|учёба
+studéiert|учились / изучал
+Stuff|гостиная
+Stull|стул
+Stänn|прилавки
+Stéck|кусок
+Stécker|куски / балки
+stéiert|мешает
+stëbseg|пыльный
+Stëmmung|атмосфера / настроение
+Suen|деньги
+Suergen|заботы
+Summer|лето
+Supermarché|супермаркет
+sympathesch|приятный
+Symptomer|симптомы
+säi|его; свой
+säin|его
+Säit|сайт / страница
+Säiten|страницы / сайты
+sécher|безопасный
+Séi|озеро
+séier|быстро
+Séiss|сладкий
+Séisses|сладкое
+séisst|сладкий
+T-Shirt|футболка
+Taart|пирог / тарт
+Taass|чашка
+Taasse|чашки
+Tablett|таблетка
+Tafel|доска
+Talent|талант
+tankt|заправляете
+Tastatur|клавиатура
+Tastaturen|клавиатуры
+Taxi|такси
+Team|команда
+Telefon|телефон
+Telefonéiere|звоним / звонить
+telefonéiert|звоните
+Teller|тарелка
+Telleren|тарелки
+Temperaturen|температуры
+Tempo|темп
+Tennisspiller|теннисист
+Terrass|терраса
+Test|экзамен, тест
+Text|текст
+Texter|тексты
+Theater|театр
+Theateren|театры
+Ticket|билет
+Titel|название / заголовок
+Toilette|туалет
+Top|кофта / топ
+Training|тренировка
+Trainéiert|тренируете
+Tram|трамвай
+Transport|транспорт
+Trap|лестница
+Traureg|грустный
+trei|верный
+Trickfilm|мультфильм
+Trickfilmer|мультфильмы
+trotzdeem|всё равно, тем не менее
+Trotzdem|тем не менее
+Tuerm|башня
+Tulpen|тюльпаны
+Turnschlappen|кроссовки
+Tut|пакет
+Tuten|сумки / пакеты
+typesch|типичный
+Téi|чай
+Tëlee|телевизор
+Tëschenduerch|в перерыве / между делом
+tëschent|между
+Uebst|фрукты
+Uerdnung|порядок
+Uertschaft|населённый пункт
+uewen|сверху / наверху
+Ufank|начало
+Ufänger|новичок
+ugedoe|одетый
+ugefaang|начал
+ugefaangen|начал (прош.)
+ugemellt|записан / зарегистрирован
+ukomm|прибыл / добрался
+Um|у / на (с артиклем)
+un|приставка глагола ufänken (начинать)
+Uni|университет
+ustrengend|утомительный
+Vakanz|отпуск
+Vakanzen|отпуск / каникулы
+Vegetarier|вегетарианец
+Verben|глаголы
+Verbesserung|улучшение
+verbruecht|провёл
+verbrénge|провожу
+verbréngt|проводите
+vergiess|забыл
+vermësst|скучаете
+Versammlung|собрание
+Verschidde|различные
+verschiddene|разные
+verstanen|понял (прош.)
+verstinn|понимаю
+Veterinär|ветеринар
+Video|видео
+Videoen|видео
+Vierdergrond|передний план
+vill|много
+ville|многими / многих
+villen|многих (форма)
+Villercher|птички
+Villäicht|может быть
+virbereet|подготовлен
+Virdeel|преимущество
+Virdeeler|преимущества
+Virdru|до этого, раньше
+Virdrun|заранее
+virgelies|читал(а) вслух
+virum|перед; (Angscht virum — боязнь чего-то)
+virun|назад
+Vläicht|может быть
+voll|полный
+voller|полный (чего-то)
+vu|от / из
+Vue|вид
+Vugel|птица
+vum|от / о (von + dem)
+vun|с / от
+véier|четыре
+véierzeg|сорок
+Vëlo|велосипед
+waarm|тепло
+waarm.|тёплый
+waarme|тёплый
+Waarmes|тёплое
+Waart|были (вы)
+Waasser|вода
+Wand|стена
+Wanderweeër|пешеходные тропы
+wann|когда / если
+Wanter|зима
+war|был / была
+waren|были
+Wat|что
+Wecker|будильник
+Wee|путь / дорога
+Weekend|выходные
+weess|знаю
+weider|дальше
+Weiderbildung|повышение квалификации
+well|потому что
+Wellen|волны
+Welt|мир
+Weste|жилет
+whatsapp|WhatsApp (мессенджер)
+wichtege|важный
+wichtegst|самые важные
+wie|кто
+Wieder|погода
+wiem|кем
+wier|было бы
+Wierder|слова
+wierklech|действительно
+wiesselt|меняете
+Wiss|луг / трава
+witzeg|смешной
+Woch|неделя
+Wochen|недели
+Wochenenn|выходные
+Woen|тележки
+Wollek|облако
+Wolleke|облака
+wollt|хотел
+Wou|где
+Wourëm|о чём
+wuel|хорошо / уютно
+Wuer|куда
+wunne|живу / жить
+Wunneng|квартира
+wunnt|живёте
+wäert|стоит / ценно
+wäich|мягкий
+Wäiglieser|бокалы для вина
+Wäin|вино
+wäiss|белый
+wäisse|белый
+wäissem|белый
+wäisst|белый
+wäit|далеко
+wär|было бы
+wärend|во время
+Wäsch|стирка
+Wäschmaschinn|стиральная машина
+Wäschmëttel|порошок для стирки
+Wéi|как / какой
+wéineg|мало / немного
+Wéini|когда
+wëll|хочу
+Wëllt|хотите
+Wënsch|желание
+wënsche|желают, хотят
+Yoga|йога
+Zalot|салат
+zanter|с (о времени)
+ze|слишком / чтобы
+Zeechnung|рисунок
+zefridden|довольный
+Zeitung|газета
+Zelter|палатки
+Zentrum|центр
+zeréck|обратно
+Zesumme|вместе
+zesummegebonnen|собранный / завязанный
+Zich|поезда
+Zigaretten|сигареты
+Zillen|кирпичи
+zimmlech|довольно
+Zocker|сахар
+Zopp|суп
+Zoppen|супы
+Zort|вид / сорт
+zortéiert|сортируете
+zou|закрыт
+zu|в
+Zuch|поезд
+Zuelen|числа / цифры
+Zukunft|будущее
+zur|в (к)
+zwanzeg|двадцать
+zwee|два
+Zweemol|дважды
+zweet|второй / вторая
+zweete|второй
+zwielef|двенадцать
+zwou|две
+Zäit|время
+Zäite|времена / расписание
+Zänn|зубы
+Zänndokter|зубной врач
+zéng|десять
+zéngdausend|десять тысяч
+Zëmmer|комната / номер
+Zëmmeren|комнаты
+Zënter|с каких пор
+Äerd|земля
+Äerdbier|клубника
+Äert|ваше
+Äishockey|хоккей
+Äppel|яблоко
+Äppeltaart|яблочный пирог
+Är|ваша / ваш
+Äre|ваш
+Ärem|вашем
+Ärer|вашей
+éier|прежде чем
+éierlech|честный / честно
+éischt|первый / сначала
+éischte|первый
+ëffentlechen|общественный
+ëm|в / около (о времени)
+ëmgezunn|переехал
+ëmmer|всегда
+Ëmwelt|окружающая среда
+Ënner|среди / под
+Ënnerdaach|навес / остановка
+ënnergeet|заходит / садится (о солнце)
+Ënnerscheed|разница
+ënnert|под
+Ënnertitelen|субтитры`;
+const VERB_RAW=`akafen|kafen an|hunn akaaft
+ausprobéieren|probéieren aus|hunn ausprobéiert
+ausrouen|roue mech aus|hu mech ausgerout
+bastelen|bastelen|hu gebastelt
+bedeiten|bedeiten|hu bedeit
+behalen|behalen|hu behalen
+bekennen|bekennen|hunn bekannt
+benotzen|benotzen|hu benotzt
+beréieren|beréieren|hu beréiert
+besichen|besichen|hu besicht
+bestellen|bestellen|hu bestallt
+bestueden|bestueden|hunn bestuet
+beweegen|beweegen|hunn beweegt
+bewonneren|bewonneren|hu bewonnert
+bezuelen|bezuelen|hu bezuelt
+bleiwen|bleiwen|si bliwwen
+blëtzen|blëtzen|hu geblëtzt
+botzen|botzen|hu gebotzt
+brauchen|brauch|hu gebraucht
+bréngen|bréngen|hu bruecht
+buchen|buchen|hu gebucht
+danzen|danzen|hu gedanzt
+decidéieren|decidéieren|hunn decidéiert
+deelen|deelen|hu gedeelt
+denken|denken|hu geduecht
+doen|doen / dinn|hu gedoen
+donneren|donneren|si gedonnert
+droen|droen|hu gedroen
+drécken|drécken|hunn gedréckt
+drénken|drénken|hu gedronk
+duschen|duschen|hunn geduscht
+entspanen|entspanen|hunn entspaant
+erhuelen|erhuele mech|hu mech erholl
+erklären|erklären|hunn erkläert
+erzielen|erzielen|hunn erzielt
+erënneren|erënneren|hunn erënnert
+falen|falen|si gefall
+fannen|fannen|hu fonnt
+feelen|feelen|hu gefeelt
+feieren|feieren|hu gefeiert
+fidderen|fidderen|hu gefiddert
+fillen|fillen|hunn gefillt
+flécken|flécken|hu gefléckt
+fléien|fléien|si geflunn
+fotograféieren|fotograféieren|hu fotograféiert
+freeën|freeën|hunn gefreet
+friessen|friessen|hu gefriess
+froen|froen|hunn gefrot
+fueren|fueren|si gefuer
+fänken|fänken|hu gefaangen
+fëmmen|fëmmen|hu gefëmmt
+gebrauchen|gebrauchen|hu gebraucht
+gefalen|gefalen|hu gefall
+gehéieren|gehéieren|hu gehéiert
+genéissen|genéissen|hu genoss
+gesinn|gesinn|hu gesinn
+ginn|ginn|hunn ginn
+gleewen|gleewen|hu gegleeft
+goen|ginn|si gaangen
+grillen|grillen|hu gegrillt
+gréissen|gréissen|hu gegréisst
+halen|halen|hunn gehalen
+heemkommen|kommen heem|sinn heemkomm
+heeschen|heeschen|hu geheescht
+hoffen|hoffen|hu gehofft
+huelen|huelen|hu geholl
+hunn|hunn|hunn gehat
+hänken|hänken|hu gehaangen
+héieren|héieren|hunn héieren
+hëllefen|hëllefen|hu gehollef
+iessen|iessen|hu giess
+informéieren|informéieren|hunn informéiert
+interesséieren|interesséieren|hunn interesséiert
+invitéieren|invitéieren|hunn invitéiert
+kachen|kachen|hu gekacht
+kafen|kafen|hu kaaft
+kaschten|kaschten|hu kascht
+kennen|kennen|hunn kannt
+klappen|klappen|hu geklappt
+kommen|kommen|si komm
+kommunizéieren|kommunizéieren|hu kommunizéiert
+kréien|kréien|hu gekréit
+kucken|kucken|hu gekuckt
+këmmeren|këmmere mech|hu mech gekëmmert
+kënnen|kann|hu kënnen
+laachen|laachen|hu gelaacht
+lafen|lafen|si gelaf
+lauschteren|lauschteren|hu gelauschtert
+leeën|leeën|hunn geluecht
+leien|leien|hu geleeën
+liesen|liesen|hu gelies
+liewen|liewen|hu gelieft
+lounen|lounen|hu gelount
+léieren|léieren|hu geléiert
+léinen|léinen|hu geléint
+léisen|léisen|hu geléist
+maachen|maachen|hunn gemaach
+mailen|mailen|hu gemailt
+mathuelen|huele mat|hu matgeholl
+matmaachen|maache mat|hu matgemaach
+mengen|mengen|hunn gemengt
+molen|molen|hu gemoolt
+mussen|muss|hu missen
+nodenken|denken no|hunn nogeduecht
+notéieren|notéieren|hunn notéiert
+oppassen|passen op|hunn opgepasst
+opraumen|raumen op|hunn opgeraumt
+organiséieren|organiséieren|hunn organiséiert
+packen|packen|hunn gepackt
+parken|parken|hu geparkt
+passen|passen|hu gepasst
+passéieren|passéieren|si passéiert
+plangen|plangen|hu geplangt
+plënneren|plënneren|hu geplënnert
+probéieren|probéieren|hu probéiert
+raumen|raumen|hu geraumt
+recommandéieren|recommandéieren|hu recommandéiert
+reechen|reechen|hu gereecht
+reesen|reesen|si gereest
+reservéieren|reservéieren|hu reservéiert
+roden|roden|hu geroden
+ruffen|ruffen|hu geruff
+sammelen|sammelen|hu gesammelt
+sangen|sangen|hu gesongen
+schaffen|schaffen|hu geschafft
+schellen|schellen|hu geschellt
+schenken|schenken|hu geschenkt
+schlofen|schlofen|hu geschlof
+schmaachen|schmaachen|hu geschmaacht
+schreiwen|schreiwen|hunn geschriwwen
+schwammen|schwammen|si geschwommen
+schwätzen|schwätzen|hu geschwat
+schécken|schécken|hunn geschéckt
+schéngen|schéngen|hu geschéngt
+setzen|setzen|hunn gesat
+shoppen|shoppen|hu geshoppt
+sichen|sichen|hu gesicht
+sinn|sinn|si gewiescht
+soen|soen|hu gesot
+sollen|soll|hu sollen
+spadséieren|spadséieren|si spadséiert
+spillen|spillen|hu gespillt
+spueren|spueren|hu gespuert
+spullen|spullen|hu gespullt
+staubsaugen|staubsaugen|hu gestaubsaugt
+stauen|stauen|hu gestaut
+stellen|stellen|hunn gestallt
+stoen|stinn|hunn gestanen
+strecken|strecken|hunn gestreckt
+studéieren|studéieren|hu studéiert
+stéieren|stéieren|hunn gestéiert
+sëtzen|sëtzen|hu gesiess
+tanken|tanken|hu getankt
+telefonéieren|telefonéieren|hunn telefonéiert
+trainéieren|trainéieren|hunn trainéiert
+treffen|treffen|hunn getraff
+ufänken|fänken un|hunn ugefaangen
+ukucken|kucken un|hunn ugekuckt
+umellen|mellen un|hunn ugemellt
+undoen|doen / dinn un|hunn ugedoen
+unzéien|zéien un|hunn ugezunn
+verbréngen|verbréngen|hu verbruecht
+verdéngen|verdéngen|hu verdéngt
+vergiessen|vergiessen|hunn vergiess
+verloossen|verloossen|hunn verlooss
+vermëssen|vermëssen|hu vermësst
+verstoen|verstinn|hunn verstanen
+vertrauen|vertrauen|hu vertraut
+virbereeden|bereede vir|hu virbereet
+virliesen|liese vir|hu virgelies
+virstellen|stellen vir|hunn virgestallt
+waarden|waarden|hu gewaart
+wanderen|wanderen|si gewandert
+weiderbilden|bilde mech weider|hu mech weidergebilt
+weisen|weisen|hunn gewisen
+widderhuelen|widderhuelen|hunn widderholl
+wielen|wielen|hu gewielt
+wiesselen|wiesselen|hu gewiesselt
+wunnen|wunnen|hu gewunnt
+wëllen|wëll|hu gewollt
+wënschen|wënschen|hu gewënscht
+wëssen|weess|hu gewosst
+zortéieren|zortéieren|hunn zortéiert
+zéien|zéien|hunn gezunn
+änneren|änneren|hunn geännert
+ëmtauschen|tauschen ëm|hunn ëmgetosch
+üben|üben|hu geüübt`;
 const PHRASES=[["Op der Foto gesäit een…","на фото видно…"],["Ech gesinn…","я вижу…"],["Am Virdergrond","на переднем плане"],["Am Hannergrond","на заднем плане"],["An der Mëtt","в центре"],["Lénks","слева"],["Riets","справа"],["Uewen","наверху"],["Ënnen","внизу"],["Ech mengen, datt…","я думаю, что…"],["Et gesäit aus, wéi wann…","похоже, что…"],["Vill Leit","много людей"],["E puer","несколько"],["Et ass Wanter.","сейчас зима."]];
 const LB_RAW=`Moien|привет|g
 Äddi|пока|g
@@ -870,8 +2860,23 @@ const LB=LB_RAW.split('\n').map(l=>{const [w,t,c]=l.split('|');return {w,t,c};})
 const PICW=(()=>{const m=new Map();PICS.forEach(p=>p.w.forEach(x=>{const [w,t]=x.split('|');if(!m.has(w))m.set(w,{w,t,c:/^(d'|de |den )/.test(w)?'n':'a'});}));PHRASES.forEach(([w,t])=>m.set(w,{w,t,c:'p'}));return [...m.values()];})();
 function uniq(arr){const m=new Map();arr.forEach(x=>{if(!m.has(x.w))m.set(x.w,x);});return [...m.values()];}
 const MINEPLUS=uniq([...MINE,...PICW]);
-const ALLW=uniq([...MINE,...PICW,...LB]);
+/* part of speech for dictionary words, read from the Russian translation (verb / adjective / noun / other) */
+function posRu(w,t){const r=t.toLowerCase().split(/[\/,;(]/)[0].trim(),last=r.split(' ').pop();
+  if(/(ть|ться|ти|чь|сь)$/.test(last))return 'v';
+  if(/(ый|ий|ой|ая|яя|ое|ее|ые|ие)$/.test(last))return 'a';
+  if(/^[A-ZÄÉË]/.test(w)||/^d'/.test(w))return 'n';
+  if(last.length>4&&/(ем|ешь|ет|ут|ют|ит|ат|ят|ал|ял|ил|ла|ло|ли)$/.test(last))return 'v';
+  return r.split(' ').length>1?'x':'n2';}
+const DICTW=uniq(DICT_RAW.split('\n').filter(Boolean).map(l=>{const [w,t]=l.split('|');return {w,t,c:posRu(w,t)};}));
+const ALLW=uniq([...MINE,...PICW,...LB,...DICTW]);
+/* verb forms from the course dictionary: present (ech-form) and Perfekt */
+const VERB=new Map(VERB_RAW.split('\n').filter(Boolean).map(l=>{const [w,pr,pf]=l.split('|');return [w,{pr,pf}];}));
 const GRP=new Map();Object.entries(GROUPS).forEach(([g,ws])=>ws.forEach(w=>GRP.set(w,g)));
+/* Example phrase per word: the word sits in a short everyday sentence, gap marked with [ ]. */
+const PHR=new Map(PHR_RAW.split('\n').filter(Boolean).map(l=>{const [w,l1,r]=l.split('|');return [w,{l:l1,r}];}));
+const phrOf=w=>PHR.get(w.w||w);
+const escH=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const phrHTML=(p,mode)=>escH(p.l).replace(/\[(.+?)\]/,mode==='gap'?'<span class="gap">&nbsp;?&nbsp;</span>':mode==='mark'?'<b class="mk">$1</b>':'<b style="color:var(--ok)">$1</b>');
 const grpOf=w=>GRP.get(w.w)||(w.c==='p'?'phrase':null);
 
 /* ================= STORAGE ================= */
@@ -898,9 +2903,9 @@ function deckFor(id){
   if(id==='custom'){const d=parseCustom(store.custom);return d.length>=4?d:MINE;}
   if(id==='hard'){const h=hardList();if(h.length>=8)return h;
     const seen=ALLW.filter(w=>P(w.w)&&!h.includes(w)).sort((a,b)=>P(b.w).wr-P(a.w).wr||P(a.w).b-P(b.w).b);return [...h,...seen].slice(0,Math.max(12,h.length));}
-  return {mine:MINEPLUS,pics:PICW,lb:LB,all:ALLW}[id]||MINEPLUS;
+  return {mine:MINEPLUS,pics:PICW,lb:LB,dict:DICTW,all:ALLW}[id]||MINEPLUS;
 }
-const DECKNAMES={hard:'трудные слова',mine:'мой список + картинки',pics:'слова к картинкам',lb:'базовые слова',all:'всё вместе',custom:'свой список'};
+const DECKNAMES={dict:'словарь курса',hard:'трудные слова',mine:'мой список + картинки',pics:'слова к картинкам',lb:'базовые слова',all:'всё вместе',custom:'свой список'};
 
 /* ================= HELPERS ================= */
 const $=id=>document.getElementById(id);
@@ -912,7 +2917,8 @@ const strip=s=>s.replace(/[\[\]]/g,'');
 function distractors(word,field,n,pool){
   pool=pool||ALLW;
   const g=grpOf(word),seen=new Set([word[field]]),out=[];
-  const cand=shuffle(pool.filter(w=>w.w!==word.w&&w[field]!==word[field]));
+  const tn=s=>s.toLowerCase().replace(/\(.*?\)/g,'').split(/[\/,;]/)[0].trim(),wf=flat(word.w),wt=tn(word.t);
+  const cand=shuffle(pool.filter(w=>w.w!==word.w&&w[field]!==word[field]&&tn(w.t)!==wt&&!(wf.length>=4&&lev(flat(w.w),wf)<=1)));
   const tiers=[cand.filter(w=>g&&grpOf(w)===g)];
   if(field==='w'){const f=flat(word.w);tiers.push(cand.filter(w=>w.c===word.c).map(w=>[w,lev(flat(w.w),f)]).sort((x,y)=>x[1]-y[1]).slice(0,12).map(x=>x[0]));}
   tiers.push(cand.filter(w=>word.c&&w.c===word.c),cand);
@@ -920,6 +2926,15 @@ function distractors(word,field,n,pool){
   return out;
 }
 const optPool=()=>store.deck==='custom'?deck:ALLW;
+const nOpt=()=>store.nOpts||8;
+const dirOf=()=>store.dir||'mix';
+/* direction per word: lb = Lëtzebuergesch→Russian, ru = Russian→Lëtzebuergesch, mix = by how well the word is known */
+function pickDir(box){const d=dirOf();if(d==='lb')return 'fwd';if(d==='ru')return 'rev';return box<2?'fwd':'rev';}
+/* a row in word lists: word, translation, and its example phrase if there is one */
+const verbLine=w=>{const v=VERB.get(w.w||w);return v?'Perfekt: '+v.pf+(v.pr&&v.pr!==(w.w||w)?' · ech '+v.pr:''):'';};
+function wordRow(w,t){const d=document.createElement('div'),b=document.createElement('b'),s=document.createElement('span');b.textContent=w;s.textContent=t;d.append(b,s);
+  const vl=verbLine(w);if(vl){d.classList.add('wph');const e=document.createElement('em');e.textContent=vl;e.style.color='var(--gold)';d.appendChild(e);}
+  const ph=phrOf(w);if(ph){d.classList.add('wph');const e=document.createElement('em');e.innerHTML=phrHTML(ph,'fill')+' <i></i>';e.querySelector('i').textContent='— '+ph.r;d.appendChild(e);}return d;}
 function bump(w,ok){const x=P(w)||(store.prog[w]={b:0,due:0,wr:0,n:0}),now=Date.now();x.n++;x.last=now;
   if(ok)x.b=Math.min(5,x.b+1);else{x.b=Math.max(0,x.b-2);x.wr++;}
   x.due=now+INT[x.b]*(ok?1:.5);}
@@ -928,6 +2943,7 @@ function bump(w,ok){const x=P(w)||(store.prog[w]={b:0,due:0,wr:0,n:0}),now=Date.
 function renderQuestion(q,els,done){
   const {label,prompt,body}=els; body.innerHTML=''; q.t0=performance.now(); q.locked=false;
   label.textContent=q.label;
+  if(els.sub){els.sub.textContent=q.sub||'';els.sub.hidden=!q.sub;}
   prompt.className='qprompt'+(q.small?' sm':''); prompt.innerHTML='';
   if(q.promptHTML) prompt.innerHTML=q.promptHTML; else prompt.textContent=q.prompt;
   if(q.mode==='scr') return scramble(q,body,done,false);
@@ -1185,16 +3201,22 @@ function pickWord(){
   let r=Math.random()*tot;for(let i=0;i<deck.length;i++){r-=ws[i];if(r<=0)return deck[i];}
   return rnd(deck);
 }
-const qEls={label:$('qLabel'),prompt:$('qPrompt'),body:$('qBody')};
+const qEls={label:$('qLabel'),prompt:$('qPrompt'),body:$('qBody'),sub:$('qSub')};
 function newQuestion(){
   const word=pickWord();recent.push(word.w);if(recent.length>Math.min(8,deck.length-4))recent.shift();
   const box=boxOf(word.w),wasRetry=G.missed.has(word.w);
-  let mode=box<2?'fwd':'rev';
-  if(box>=4&&!/\s/.test(word.w)&&Array.from(word.w).length<=12)mode='scr';
+  let mode=pickDir(box);
+  if(mode==='rev'&&box>=4&&!/\s/.test(word.w)&&Array.from(word.w).length<=12&&Math.random()<.5)mode='scr';
+  /* difficult or already-met words come wrapped in a phrase more often */
+  const ph=phrOf(word),x=P(word.w),hard=isHard(x)||(x&&x.wr>0)||G.missed.has(word.w);
+  const usePhr=ph&&mode!=='scr'&&Math.random()<(hard?.75:box>=2?.4:0);
   const boss=bossShielded();
-  const lbl=boss?'Сними щит босса':mode==='fwd'?'Переведи':mode==='rev'?'Как это будет?':'Собери слово';
+  let lbl=boss?'Сними щит босса':mode==='fwd'?'Переведи':mode==='rev'?'Как это будет?':'Собери слово';
   if(mode==='scr')Q={mode,label:lbl,prompt:word.t,answer:word.w};
-  else{const f=mode==='fwd'?'t':'w';Q={mode,label:lbl,prompt:mode==='fwd'?word.w:word.t,answer:word[f],options:shuffle([word[f],...distractors(word,f,7,optPool())])};}
+  else{const f=mode==='fwd'?'t':'w';Q={mode,label:lbl,prompt:mode==='fwd'?word.w:word.t,answer:word[f],options:shuffle([word[f],...distractors(word,f,nOpt()-1,optPool())])};
+    if(usePhr){Q.small=true;Q.phr=true;
+      if(mode==='fwd'){Q.label=boss?lbl:'Что значит слово во фразе?';Q.promptHTML=phrHTML(ph,'mark');}
+      else{Q.label=boss?lbl:'Вставь слово во фразу';Q.promptHTML=phrHTML(ph,'gap');Q.sub=ph.r;}}}
   Q.word=word;Q.wasRetry=wasRetry;
   setBossUI();$('combo').textContent=G.combo>1?'серия ×'+G.combo:'';
   renderQuestion(Q,qEls,ok=>answer(ok));
@@ -1218,12 +3240,18 @@ function answer(ok){
   }
   questTick(ok,fast,w,Q.wasRetry);
   autoBuy();save();updHud();
+  /* show the word inside its sentence: always after a mistake, briefly after a phrase question */
+  const ph=phrOf(w);let extra=0;
+  if(!ok&&!ph){const c=document.createElement('div');c.className='ctx';c.textContent=w.w+' — '+w.t+(verbLine(w)?' · '+verbLine(w):'');qEls.body.appendChild(c);extra=500;}
+  if(ph&&(!ok||Q.phr)){const c=document.createElement('div');c.className='ctx';c.innerHTML=phrHTML(ph,'fill')+'<small></small>';c.querySelector('small').textContent=ph.r;
+    if(!ok){const h=document.createElement('div');h.className='qsub';h.style.marginBottom='4px';h.textContent=w.w+' — '+w.t+(verbLine(w)?' · '+verbLine(w):'');c.prepend(h);}
+    qEls.body.appendChild(c);extra=ok?600:1300;}
   setTimeout(()=>{
     if(!running)return;
     if(G.pendingChest){const quest=G.pendingChest===2;G.pendingChest=0;
       openChest(quest?'Заказ выполнен!':'Сундук за серию!',quest?2:1,()=>{if(quest)newQuest();newQuestion();});}
     else newQuestion();
-  },ok?450:1700);
+  },(ok?450:1700)+extra);
 }
 
 /* ================= BATTLE: RENDER ================= */
@@ -1348,35 +3376,63 @@ function loop(ts){
     for(let i=G.fx.length-1;i>=0;i--){G.fx[i].t+=dt;if(G.fx[i].t>=G.fx[i].life)G.fx.splice(i,1);}
     for(let r=0;r<ROWS;r++)for(let x=0;x<COLS;x++){const t=G.grid[r][x];if(t&&t.pop>0)t.pop-=dt;}
   }
-  if(running)draw();requestAnimationFrame(loop);
+  if(running){draw();if(ts-lastSnap>5000){lastSnap=ts;snapBattle();}}requestAnimationFrame(loop);
 }
 function hideAll(){['menu','over','pause','settings','shop','gallery','lesson','hardO','hunt'].forEach(id=>$(id).hidden=true);}
+/* Save & resume: the whole battle state goes to localStorage, so the app can be closed and reopened. */
+let lastSnap=0;
+function snapBattle(){
+  if(!running||!G||G.hearts<=0)return;
+  const s=Object.assign({},G,{fx:[],tip:null,chestOpen:false,missed:[...G.missed],pendingChest:G.chestOpen?(G.pendingChest||1):G.pendingChest});
+  store.saved=store.saved||{};store.saved.battle={g:s,deck:G.deckId||store.deck,diff:store.diff||2,at:Date.now()};save();
+}
+function resumeBattle(){
+  const sv=store.saved&&store.saved.battle;if(!sv)return startGame();
+  store.diff=sv.diff;deck=deckFor(sv.deck);recent=[];hideAll();$('chest').hidden=true;
+  G=sv.g;G.missed=new Map(G.missed||[]);G.fx=[];G.tip=null;G.chestOpen=false;
+  running=true;paused=false;resize();updHud();drawQuest();setBossUI();newQuestion();
+  banner('Продолжаем','Волна '+Math.max(1,G.wave)+' · '+diff().name);last=performance.now();lastSnap=last;requestAnimationFrame(loop);
+}
 function startGame(){
   deck=deckFor(store.deck);recent=[];hideAll();$('chest').hidden=true;
-  newGame();running=true;paused=false;resize();updHud();newQuestion();
+  if(store.saved)delete store.saved.battle;
+  newGame();G.deckId=store.deck;running=true;paused=false;resize();updHud();newQuestion();
   banner('Wuertbuerg','Верные ответы заряжают башни');last=performance.now();requestAnimationFrame(loop);
 }
 function gameOver(){
-  running=false;$('chest').hidden=true;
+  running=false;$('chest').hidden=true;if(store.saved)delete store.saved.battle;
   store.bests=store.bests||{};const dk=store.diff||2;store.gems+=G.gems;const nb=G.wave>(store.bests[dk]||0);if(nb)store.bests[dk]=G.wave;store.best=Math.max(store.best||0,G.wave);save();
   $('oTitle').textContent=(nb?'Новый рекорд':'Замок пал')+' · '+diff().name;$('oWave').textContent=G.wave;
   const tot=G.right+G.wrong;$('oAcc').textContent=tot?Math.round(G.right/tot*100)+'%':'—';$('oGems').textContent=G.gems;
   const m=$('oMissed');m.innerHTML='';
   if(!G.missed.size){$('oMissHead').textContent=G.wrong?'Все ошибки исправлены за игру.':'Ни одной ошибки за игру.';m.hidden=true;}
   else{$('oMissHead').textContent='Повтори эти слова:';m.hidden=false;
-    G.missed.forEach((t,w)=>{const d=document.createElement('div'),b=document.createElement('b'),s=document.createElement('span');b.textContent=w;s.textContent=t;d.append(b,s);m.appendChild(d);});}
+    G.missed.forEach((t,w)=>m.appendChild(wordRow(w,t)));}
   $('over').hidden=false;
 }
 
 function setPause(v){if(!running)return;paused=v;$('pause').hidden=!v;if(v)$('pauseDiff').textContent='Сложность: '+diff().name+' ('+diff().pace+'). Сменить можно в меню перед битвой.';if(!v)last=performance.now();}
-function quitBattle(){if(running&&G){store.gems+=G.gems;G.gems=0;save();}running=false;showMenu();}
+function quitBattle(){if(running&&G){store.gems+=G.gems;G.gems=0;snapBattle();}running=false;showMenu();}
 
 /* ================= MENU, DECK, SHOP ================= */
-function drawDiff(){const d=String(store.diff||2);document.querySelectorAll('#diffSeg button').forEach(b=>b.setAttribute('aria-checked',b.dataset.d===d));
+function drawOpts(){document.querySelectorAll('#dirSeg button').forEach(b=>b.setAttribute('aria-checked',b.dataset.v===dirOf()));const n=String(nOpt());document.querySelectorAll('#optSeg button').forEach(b=>b.setAttribute('aria-checked',b.dataset.n===n));}
+document.querySelectorAll('#dirSeg button').forEach(b=>b.onclick=()=>{store.dir=b.dataset.v;save();drawOpts();});
+document.querySelectorAll('#optSeg button').forEach(b=>b.onclick=()=>{store.nOpts=+b.dataset.n;save();drawOpts();});
+function drawDiff(){drawOpts();const d=String(store.diff||2);document.querySelectorAll('#diffSeg button').forEach(b=>b.setAttribute('aria-checked',b.dataset.d===d));
   $('diffHint').textContent=diff().name+': чтобы удержать замок, нужен '+diff().pace+'.';}
 document.querySelectorAll('#diffSeg button').forEach(b=>b.onclick=()=>{store.diff=+b.dataset.d;save();drawDiff();});
+function ago(ts){const m=Math.round((Date.now()-ts)/60000);return m<1?'только что':m<60?m+' мин. назад':m<1440?Math.round(m/60)+' ч. назад':Math.round(m/1440)+' дн. назад';}
+function drawResume(){
+  const sv=store.saved||{},b=sv.battle,h=sv.hunt;
+  $('resBattle').hidden=!b;$('resHunt').hidden=!h;$('resumeBox').hidden=!b&&!h;
+  if(b){$('resBattle').innerHTML='Продолжить битву<small></small>';$('resBattle').querySelector('small').textContent='Волна '+Math.max(1,b.g.wave)+' · ♥ '+b.g.hearts+' · '+DIFFS[b.diff].name+' · '+ago(b.at);}
+  if(h){$('resHunt').innerHTML='Продолжить охоту<small></small>';$('resHunt').querySelector('small').textContent='Монстр '+h.g.lvl+' · ♥ '+h.g.hearts+' · '+DIFFS[h.diff].name+' · '+ago(h.at);}
+  $('goBattle').querySelector('b').textContent=b?'Новая битва':'Битва за замок';
+  $('goBattle').classList.toggle('primary',!b&&!h);
+  $('goHunt').querySelector('b').textContent=h?'Новая охота':'Охота на дракона';
+}
 function showMenu(){
-  running=false;hideAll();drawDiff();
+  running=false;hideAll();drawDiff();drawResume();
   const p=prog(),d=deckFor(store.deck);
   $('mMastered').textContent=Object.keys(p).filter(w=>boxOf(w)>=4).length;
   const hl=hardList().length,dc=dueCount();$('mHard').textContent=hl;
@@ -1390,10 +3446,13 @@ function showMenu(){
   $('menu').hidden=false;
 }
 $('goBattle').onclick=startGame;$('oAgain').onclick=startGame;$('oMenu').onclick=showMenu;
+$('resBattle').onclick=resumeBattle;$('resHunt').onclick=()=>resumeHunt();
 $('pauseBtn').onclick=()=>setPause(true);$('resumeBtn').onclick=()=>setPause(false);$('quitBtn').onclick=quitBattle;
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!paused)setPause(true);});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running){if(!paused)setPause(true);snapBattle();}});
+window.addEventListener('pagehide',()=>{if(running)snapBattle();});
 
 $('cMine').textContent=MINE.length+' слов из твоего списка + '+(MINEPLUS.length-MINE.length)+' слов и фраз с картинок';$('cPics').textContent=PICW.length+' слов и фраз из 30 картинок';
+$('cDict').textContent=DICTW.length+' слов из твоего словаря (глоссарий и глаголы)';
 $('cLb').textContent=LB.length+' самых частых слов';$('cAll').textContent=ALLW.length+' слов';
 let resetArm=false;
 $('bkCopy').onclick=()=>{const code=btoa(unescape(encodeURIComponent(JSON.stringify(store))));$('bkTxt').value=code;
@@ -1430,7 +3489,7 @@ function drawShop(){
 }
 $('goHard').onclick=()=>{hideAll();const l=$('hardList');l.innerHTML='';const h=hardList();
   if(!h.length){const d=document.createElement('div');d.textContent='Пока пусто. Слова появятся здесь после ошибок.';l.appendChild(d);}
-  h.forEach(w=>{const x=P(w.w),d=document.createElement('div'),b=document.createElement('b'),s=document.createElement('span');b.textContent=w.w;s.textContent=w.t+' · ошибок: '+x.wr;d.append(b,s);l.appendChild(d);});
+  h.forEach(w=>{const x=P(w.w);l.appendChild(wordRow(w.w,w.t+' · ошибок: '+x.wr));});
   $('hardPlay').disabled=!ALLW.some(w=>P(w.w));$('hardO').hidden=false;};
 $('hardPlay').onclick=()=>{const prev=store.deck;store.deck='hard';startGame();store.deck=prev;};
 $('hardBack').onclick=showMenu;
@@ -1736,7 +3795,7 @@ function renderStepE(){
   if(st.k==='word'){
     const w=st.w,box=boxOf(w.w),canS=Array.from(w.w).length<=14&&!/\s/.test(w.w.replace(/^(de|den) /,''));
     if(box>=2&&canS&&!/ /.test(w.w)) q={mode:'scr',label:'Собери слово',prompt:w.t,answer:w.w};
-    else q={mode:'pick',label:'Как сказать на картинке?',prompt:w.t,answer:w.w,options:shuffle([w.w,...distractors(w,'w',7,ALLW)])};
+    else q={mode:'pick',label:'Как сказать на картинке?',prompt:w.t,answer:w.w,options:shuffle([w.w,...distractors(w,'w',nOpt()-1,ALLW)])};
     renderQuestion(q,els,ok=>{bump(w.w,ok);save();next(ok);});
   }
   if(st.k==='odd'){
@@ -1749,7 +3808,7 @@ function renderStepE(){
   if(st.k==='cloze'){
     const m=st.s.l.match(/\[(.+?)\]/),ans=m[1];
     const html=st.s.l.replace(/\[(.+?)\]/,'<span class="gap">&nbsp;?&nbsp;</span>');
-    const dis=shuffle(ALLCLOZE.filter(x=>x!==ans)).filter((x,i,a)=>a.indexOf(x)===i).slice(0,7);
+    const dis=shuffle(ALLCLOZE.filter(x=>x!==ans)).filter((x,i,a)=>a.indexOf(x)===i).slice(0,nOpt()-1);
     q={mode:'pick',label:'Вставь слово',promptHTML:esc(html),small:true,answer:ans,options:shuffle([ans,...dis])};
     renderQuestion(q,els,ok=>{const pr=els.prompt;pr.innerHTML=esc(st.s.l.replace(/\[(.+?)\]/,'<b style="color:var(--ok)">$1</b>'));
       const s=document.createElement('div');s.className='qsub';s.textContent=st.s.r;pr.after(s);next(ok);});
@@ -1792,14 +3851,28 @@ function hresize(){const r=hcv.getBoundingClientRect(),dpr=Math.min(window.devic
 new ResizeObserver(hresize).observe(hcv);
 const hEls={label:$('hqLabel'),prompt:$('hqPrompt'),body:$('hqBody')};
 
+let hLastSnap=0;
+function snapHunt(){
+  if(!HG||HG.over||HG.hearts<=0)return;
+  const s=Object.assign({},HG,{fx:[],rockets:[],loot:[],active:null,paused:false,missed:[...HG.missed],
+    items:HG.items.filter(i=>i.state==='fall').map(i=>Object.assign({},i,{q:null}))});
+  store.saved=store.saved||{};store.saved.hunt={g:s,deck:HG.deckId||store.deck,diff:store.diff||2,at:Date.now()};save();
+}
+function resumeHunt(){
+  const sv=store.saved&&store.saved.hunt;if(!sv)return huntStart();
+  store.diff=sv.diff;hideAll();$('hunt').hidden=false;$('huntPause').hidden=true;$('huntOver').hidden=true;
+  deck=deckFor(sv.deck);HG=sv.g;HG.missed=new Map(HG.missed||[]);HG.active=null;HG.hold=0;HG.paused=false;HG.over=false;
+  hresize();huntHud();hBanner(HG.mon.name,'Продолжаем · монстр '+HG.lvl);
+  HG.last=performance.now();hLastSnap=HG.last;requestAnimationFrame(huntLoop);
+}
 function huntStart(){
   hideAll();$('hunt').hidden=false;$('huntPause').hidden=true;$('huntOver').hidden=true;
-  deck=deckFor(store.deck);
+  deck=deckFor(store.deck);if(store.saved)delete store.saved.hunt;
   const d=diff();
   HG={lvl:1,hearts:4,maxHearts:5,combo:0,best:0,right:0,wrong:0,missed:new Map(),retry:[],recent:[],gems:0,
      items:[],rockets:[],fx:[],loot:[],spawnT:.5,freeze:0,dbl:0,shield:0,paused:false,over:false,
      fall:d.sec*2.3,gap:d.sec*1.05,speedUp:1,active:null,t:0,hold:0};
-  newMonster();hresize();huntHud();
+  HG.deckId=store.deck;newMonster();hresize();huntHud();
   hBanner(HG.mon.name,'Отвечай, пока слово не упало');
   HG.last=performance.now();requestAnimationFrame(huntLoop);
 }
@@ -1817,8 +3890,8 @@ function hPick(){
 }
 function spawnItem(){
   const word=hPick();HG.recent.push(word.w);if(HG.recent.length>Math.min(8,deck.length-4))HG.recent.shift();
-  const mode=boxOf(word.w)<2?'fwd':'rev',f=mode==='fwd'?'t':'w';
-  const it={word,mode,prompt:mode==='fwd'?word.w:word.t,answer:word[f],options:shuffle([word[f],...distractors(word,f,7,optPool())]),
+  const mode=pickDir(boxOf(word.w)),f=mode==='fwd'?'t':'w';
+  const it={word,mode,prompt:mode==='fwd'?word.w:word.t,answer:word[f],options:shuffle([word[f],...distractors(word,f,nOpt()-1,optPool())]),
     x:(()=>{const lanes=[.24,.5,.76].filter(l=>!HG.items.some(i=>i.state==='fall'&&Math.abs(i.x-l)<.1&&i.y<START+.25));return lanes.length?rnd(lanes):rnd([.24,.5,.76]);})(),y:START,state:'fall',flash:0};
   HG.items.push(it);
 }
@@ -1851,6 +3924,9 @@ function huntAnswer(it,ok){
     HG.fx.push({k:'txt',x:.5,y:fr(monGeom().headY)-.12,s:'Монстр злится!',c:'#e2574c',t:0,life:1.1});
   }
   huntHud();HG.hold=ok?.2:1.1;
+  const ph=phrOf(it.word);
+  if(!ok&&ph){const c=document.createElement('div');c.className='ctx';c.innerHTML='<div class="qsub" style="margin-bottom:4px"></div>'+phrHTML(ph,'fill')+'<small></small>';
+    c.querySelector('.qsub').textContent=it.word.w+' — '+it.word.t+(verbLine(it.word)?' · '+verbLine(it.word):'');c.querySelector('small').textContent=ph.r;hEls.body.appendChild(c);HG.hold=2.4;}
 }
 function huntUpdate(dt){
   HG.t+=dt;HG.freeze-=dt;HG.dbl-=dt;
@@ -1989,26 +4065,27 @@ function rr2(c,x,y,w,h,r){c.beginPath();c.roundRect?c.roundRect(x,y,w,h,r):c.rec
 function huntLoop(ts){
   if(!HG||HG.over||$('hunt').hidden)return;const dt=Math.min(.05,(ts-HG.last)/1000||0);HG.last=ts;
   if(!HG.paused)huntUpdate(dt*diff().spd/.7);
-  if(HG&&!HG.over)huntDraw();requestAnimationFrame(huntLoop);
+  if(HG&&!HG.over){huntDraw();if(ts-hLastSnap>5000){hLastSnap=ts;snapHunt();}}requestAnimationFrame(huntLoop);
 }
 function huntHud(){$('hLvl').textContent=HG.lvl;$('hLives').textContent='♥'.repeat(Math.max(0,HG.hearts))+'♡'.repeat(Math.max(0,HG.maxHearts-HG.hearts));
   $('hCombo').textContent=HG.combo>1?'серия ×'+HG.combo+(HG.combo>=10?' · метеоры':HG.combo>=5?' · бомбы':''):'';}
 let hbT=0;function hBanner(t,s){$('hbT').textContent=t;$('hbS').textContent=s||'';$('hBanner').classList.add('show');clearTimeout(hbT);hbT=setTimeout(()=>$('hBanner').classList.remove('show'),1700);}
 function huntOver(){
-  HG.over=true;store.gems+=HG.gems;store.huntBest=store.huntBest||{};const dk=store.diff||2;const nb=HG.lvl>(store.huntBest[dk]||0);if(nb)store.huntBest[dk]=HG.lvl;save();
+  HG.over=true;if(store.saved)delete store.saved.hunt;store.gems+=HG.gems;store.huntBest=store.huntBest||{};const dk=store.diff||2;const nb=HG.lvl>(store.huntBest[dk]||0);if(nb)store.huntBest[dk]=HG.lvl;save();
   $('hoTitle').textContent=(nb?'Новый рекорд':'Монстр победил')+' · '+diff().name;
   $('hoLvl').textContent=HG.lvl;const tot=HG.right+HG.wrong;$('hoAcc').textContent=tot?Math.round(HG.right/tot*100)+'%':'—';$('hoGems').textContent=HG.gems;
   const m=$('hoMissed');m.innerHTML='';
   if(!HG.missed.size){$('hoMissHead').textContent='Ни одного пропущенного слова.';m.hidden=true;}
-  else{$('hoMissHead').textContent='Повтори эти слова:';m.hidden=false;HG.missed.forEach((t,w)=>{const d=document.createElement('div'),b=document.createElement('b'),s=document.createElement('span');b.textContent=w;s.textContent=t;d.append(b,s);m.appendChild(d);});}
+  else{$('hoMissHead').textContent='Повтори эти слова:';m.hidden=false;HG.missed.forEach((t,w)=>m.appendChild(wordRow(w,t)));}
   $('huntOver').hidden=false;
 }
-function huntQuit(){if(HG&&!HG.over){store.gems+=HG.gems;save();}if(HG)HG.over=true;showMenu();}
+function huntQuit(){if(HG&&!HG.over){store.gems+=HG.gems;HG.gems=0;snapHunt();}if(HG)HG.over=true;showMenu();}
 $('goHunt').onclick=huntStart;
 $('hPauseBtn').onclick=()=>{if(!HG||HG.over)return;HG.paused=true;$('huntPause').hidden=false;};
 $('hResume').onclick=()=>{HG.paused=false;HG.last=performance.now();$('huntPause').hidden=true;};
 $('hQuit').onclick=huntQuit;$('hoMenu').onclick=huntQuit;$('hoAgain').onclick=huntStart;
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&HG&&!HG.over&&!$('hunt').hidden){HG.paused=true;$('huntPause').hidden=false;}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&HG&&!HG.over&&!$('hunt').hidden){HG.paused=true;$('huntPause').hidden=false;snapHunt();}});
+window.addEventListener('pagehide',()=>{if(HG&&!HG.over&&!$('hunt').hidden)snapHunt();});
 
 /* ================= BOOT ================= */
 deck=deckFor(store.deck);newGame();resize();draw();showMenu();
