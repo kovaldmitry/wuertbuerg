@@ -29,6 +29,7 @@
   color-scheme:dark;
 }
 [hidden]{display:none!important}
+.tnext{width:100%;margin-top:12px}
 html{height:100%;box-sizing:border-box;background:var(--ground)}
 *,*::before,*::after{box-sizing:border-box}
 body{height:100%;margin:0;overflow:hidden;background:var(--ground);color:var(--cream);font-family:var(--f-body);font-size:15px;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
@@ -4230,11 +4231,19 @@ function renderTopicQ(){
     b.onclick=()=>{if(o.lock)return;o.lock=true;const ok=w===o.g.w;b.classList.add(ok?'ok':'bad');
       if(!ok){[...grid.children].forEach(x=>{if(x.textContent===o.g.w)x.classList.add('ok');});o.bad=true;TQ.err++;TQ.streak=0;}else TQ.streak++;
       if(o.g.lex){bump(o.g.lex.w,ok);save();}
-      setTimeout(()=>{TQ.at++;renderTopicQ();},ok?380:1500);};
+      if(!ok){const rv=document.createElement('div');rv.className='reveal';rv.innerHTML='Правильно: <b></b>';rv.querySelector('b').textContent=o.s;grid.after(rv);}
+      topicNext(body,ok);};
     grid.appendChild(b);});
   body.appendChild(grid);
   $('tqProg').style.width=(TQ.at/TQ.sents.length*100)+'%';
   body.scrollTop=body.scrollHeight;
+}
+/* after an answer: a correct one moves on by itself after a pause, a wrong one waits for "Далее" */
+function topicNext(body,ok){
+  const at=TQ.at,go=()=>{if(TQ.at!==at)return;clearTimeout(t);TQ.at++;renderTopicQ();};
+  const b=document.createElement('button');b.className='btn primary tnext';b.textContent='Далее →';b.onclick=go;
+  body.appendChild(b);body.scrollTop=body.scrollHeight;
+  const t=ok?setTimeout(go,1400):0;
 }
 function buildSentence(o,body){
   const ans=bwords(o.s);
@@ -4255,7 +4264,7 @@ function buildSentence(o,body){
     if(!ok){o.bad=true;TQ.err++;TQ.streak=0;const rv=document.createElement('div');rv.className='reveal';rv.innerHTML='Правильно: <b></b>';rv.querySelector('b').textContent=o.s;wrap.appendChild(rv);}
     else TQ.streak++;
     [...tiles.children].forEach(b=>b.disabled=true);
-    setTimeout(()=>{TQ.at++;renderTopicQ();},ok?500:2600);};
+    topicNext(body,ok);};
   draw();wrap.append(slots,tiles);body.appendChild(wrap);
   $('tqProg').style.width=(TQ.at/TQ.sents.length*100)+'%';body.scrollTop=body.scrollHeight;
 }
